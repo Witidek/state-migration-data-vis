@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <script src="//d3js.org/d3.v3.min.js"></script>
+  <style>
+
+  #wrapper {
+    width: 1700px;
+    height: 720px;
+    overflow: auto;
+  } 
+
+  #controls {
+    float: left;
+    text-align: center;
+    background-color: #EEEEEE;
+    width: 200px;
+    height: 720px;
+  }
+
+  #canvas {
+    display: inline-block;
+    width: 1280px;
+    width: 720px;
+  }
+
+  .background {
+    fill: white;
+    pointer-events: all;
+  }
+
+  .button {
+    fill: white;
+    stroke: gray;
+    stroke-width: 1;
+  }
+
+  .button.active {
+    fill: cyan;
+    stroke: gray;
+    stroke-width: 1;
+  }
+
+  .feature {
+    stroke: #fff;
+    stroke-width: 1;
+    cursor: pointer;
+  }
+
+  .feature:hover {
+    fill-opacity: 0.5;
+  }
+
+  .feature.first {
+    fill: orange;
+    stroke: #fff;
+    stroke-width: 1;
+  }
+
+  .feature.first:hover {
+    fill-opacity: 1;
+  }
+
+  .feature.second {
+    fill: lightgreen;
+    stroke: #fff;
+    stroke-width: 1;
+  }
+
+  .feature.second:hover {
+    fill-opacity: 1;
+  }
+
+  .arrow {
+    fill: none;
+    stroke: black;
+    stroke-width: 2;
+  }
+
+  div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 200px;
+    height: 200px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: white;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+    overflow-y: scroll;
+  }
+
+  </style>
+</head>
+<body>
+  <div id = "wrapper">
+    <div id="controls"></div>
+    <div id="canvas"></div>
+  </div>
+
+  <script src="sketch.js"></script>
+</body>
