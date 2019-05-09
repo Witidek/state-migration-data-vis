@@ -53,11 +53,11 @@ var displayModeText = d3.select("#controls")
 var displayModeDiv = d3.select("#controls")
     .append("div")
     .attr("id", "ops")
-    .style("width", "196px")
+    .style("width", "100%")
     .style("height", "150px")
     .style("margin-top", "10px")
     .style("margin-bottom", "10px")
-    .style("border", "2px solid")
+    //.style("border", "2px solid")
     .style("border-color", "green");
 
 // Display mode SVG and element array
@@ -128,11 +128,11 @@ var colorSchemeText = d3.select("#controls")
 var colorSchemeDiv = d3.select("#controls")
     .append("div")
     .attr("id", "filters")
-    .style("width", "196px")
+    .style("width", "100%")
     .style("height", "150px")
     .style("margin-top", "10px")
     .style("margin-bottom", "10px")
-    .style("border", "2px solid")
+    //.style("border", "2px solid")
     .style("border-color", "red");
 
 // Color scheme SVG and element array
@@ -220,17 +220,16 @@ var infoText = d3.select("#controls")
 var infoDiv = d3.select("#controls")
     .append("div")
     .attr("id", "infoDiv")
-    .style("width", "196px")
+    .style("width", "100%")
     .style("height", "250px")
     .style("overflow-y", "scroll")
-    .style("border", "2px solid");
+    //.style("border-top", "2px solid");
 
 // Div for info box left side
 var infoTable = infoDiv.append("table")
-        .attr("width", "198px")
+        .attr("width", "100%")
         .attr("border", "1px")
-        .style("border-collapse", "collapse")
-        .style("border-left", "none");
+        .style("border-collapse", "collapse");
 var infoTableHeader = infoTable.append("thead"),
     infoTableBody = infoTable.append("tbody");
 
@@ -248,7 +247,6 @@ svg.append("defs").append("marker")
     .attr("viewBox", "-6 -6 12 12")
     .append("path")
         .attr("d", "M0,0  m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0");
-
 
 // Create arrow head marker
 svg.append("defs").append("marker")
