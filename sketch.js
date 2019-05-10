@@ -42,6 +42,9 @@ svg.append("rect")
     //.style("fill", "rgb(196,238,252)")
     .on("click", reset);
 
+// Create inner SVG element to apply transformations on
+var g = svg.append("g");
+
 // Text for display modes
 var displayModeText = d3.select("#controls")
     .append("text")
@@ -233,8 +236,6 @@ var infoTable = infoDiv.append("table")
 var infoTableHeader = infoTable.append("thead"),
     infoTableBody = infoTable.append("tbody");
 
-// Create inner SVG element to apply transformations on
-var g = svg.append("g");
 
 // Create dot marker
 svg.append("defs").append("marker")
@@ -263,10 +264,15 @@ svg.append("defs").append("marker")
 
 // Define zoom behavior in function
 var zoom = d3.behavior.zoom()
-    .on("zoom", zoomed);
+    .on("zoom", zoomed)
+    //.extent([[-width,height],[width, height]]);
+    .scaleExtent([0.8,10])
+    //.translateExtent([[0,0],[width, height]]);
+
 
 // Turn zoom listener on
-svg.call(zoom);
+svg.call(zoom)
+    .on("dblclick.zoom", null);
 svg.call(zoom.event);
 
 // Setup data object for all state information
@@ -299,6 +305,7 @@ d3.csv("stateoutflow1516.csv", function(data) {
     stateData[s1]["out"][s2]["n2"] = n2;
     stateData[s1]["out"][s2]["agi"] = agi;
     stateData[s1]["out"]["sorted"].push([s2, n1]);
+    // TODO: Compute and add total income, migration summaries, etc
   }
 });
 
@@ -317,6 +324,7 @@ d3.csv("stateinflow1516.csv", function(data) {
     stateData[s2]["in"][s1]["n2"] = n2;
     stateData[s2]["in"][s1]["agi"] = agi;
     stateData[s2]["in"]["sorted"].push([s1, n1]);
+    // TODO: Compute and add total income, migration summaries, etc
   }
 });
 
@@ -335,11 +343,13 @@ d3.json("states.json", function(error, json) {
       .on("click", onClickState);
 
   // Draw state text
-  g.selectAll("stateLabel")
+  g.selectAll("text")
       .data(json.features)
       .enter().append("text")
       .attr("font-size", "12px")
+      .attr("pointer-events", "none")
       .attr("transform", function(d) {
+           // TODO: Manually fix label positions
           let id = parseInt(d.id),
               b = path.bounds(d),
               x = (b[0][0] + b[1][0]) / 2 * scale + translate[0],
@@ -369,6 +379,11 @@ function onClickState(d) {
     secondActive.classed("second", false);
     secondActive = null;
 
+  }else if (firstActive !== null && displayMode == "gen") {
+    // Only allow one state to be selected, change selection
+    firstActive.classed("first", false);
+    firstActive = d3.select(this).classed("first", true);
+
   }else if (firstActive !== null) {
     // First state selected, now select second state
     if (secondActive !== null) {
@@ -381,7 +396,9 @@ function onClickState(d) {
     firstActive = d3.select(this).classed("first", true);
   }
 
-  update();
+  drawArrows();
+  zoomToFocus();
+  writeInfo();
 }
 
 // Event handler for control buttons
@@ -397,6 +414,9 @@ function onClickControls(id) {
       displayModeTexts[0].attr("font-weight", "bold");
       displayModeButtons[0].classed("active", true);
       displayMode = "gen";
+      if (secondActive !== null) {
+        secondActive = null;
+      }
     }else if (id === "inButton") {
       displayModeTexts[1].attr("font-weight", "bold");
       displayModeButtons[1].classed("active", true);
@@ -406,6 +426,9 @@ function onClickControls(id) {
       displayModeButtons[2].classed("active", true);
       displayMode = "out";
     }
+    drawArrows();
+    zoomToFocus();
+    writeInfo();
   }else if (id === "noneButton" || id === "popButton" || 
             id === "deltaButton" || id === "incomeButton") {
     // Reset color scheme buttons
@@ -418,6 +441,7 @@ function onClickControls(id) {
       colorSchemeTexts[0].attr("font-weight", "bold");
       colorSchemeButtons[0].classed("active", true);
       colorScheme = "none";
+      console.log(translate);
     }else if (id === "popButton") {
       colorSchemeTexts[1].attr("font-weight", "bold");
       colorSchemeButtons[1].classed("active", true);
@@ -431,16 +455,8 @@ function onClickControls(id) {
       colorSchemeButtons[3].classed("active", true);
       colorScheme = "income";
     }
+    fillColors();
   }
-  update();
-}
-
-// Update all
-function update() {
-  drawArrows();
-  zoomToFocus();
-  fillColors();
-  writeInfo();
 }
 
 // Draw any arrows depending on state selection
@@ -459,6 +475,14 @@ function drawArrows() {
         y1 = stateData[s1]["y"],
         x2 = stateData[s2]["x"],
         y2 = stateData[s2]["y"];
+
+    // Flip order depending on displayMode
+    if (displayMode === "in") {
+      x1 = stateData[s2]["x"],
+      y1 = stateData[s2]["y"],
+      x2 = stateData[s1]["x"],
+      y2 = stateData[s1]["y"];
+    }
 
     // Draw arrow
     g.append("g").append("path")
@@ -520,7 +544,7 @@ function zoomToFocus() {
   var polygon = null;
   if (firstActive === null) {
     // Return early if somehow nothing is selected
-    return reset();
+    //return reset();
 
   }else if (firstActive !== null && secondActive !== null) {
     // Two states selected, draw arrow between first and second
@@ -614,9 +638,6 @@ function writeInfo() {
     var row = infoTableBody.append("tr");
     row.append("td").text("FIPS code");
     row.append("td").text(id);
-
-    row = infoTableBody.append("tr");
-    row.append("td").text("")
 
     // TODO: show more state general info
 
@@ -732,7 +753,6 @@ function reset() {
     secondActive = null;
   }
 
-
   // Delete all drawn arrows
   g.selectAll("g").remove();
 
@@ -744,10 +764,7 @@ function reset() {
 
 // Zoom behavior
 function zoomed() {
-  g.style("stroke-width", 1.5 / d3.event.scale + "px");
   g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-  translate = d3.event.translate;
-  scale = d3.event.scale;
 }
 
 // If the drag behavior prevents the default click,
