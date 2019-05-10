@@ -290,25 +290,6 @@ d3.csv("fips.csv", function(data) {
   }
 });
 
-// Load out bound migration data from CSV
-d3.csv("stateoutflow1516.csv", function(data) {
-  for (let i = 0; i < data.length; i++) {
-    let s1 = parseInt(data[i].y1_statefips),
-        s2 = parseInt(data[i].y2_statefips),
-        n1 = parseInt(data[i].n1);
-        n2 = parseInt(data[i].n2);
-        agi = parseInt(data[i].agi);
-    if (!(s2 in stateData[s1]["out"])) {
-      stateData[s1]["out"][s2] = {};
-    }
-    stateData[s1]["out"][s2]["n1"] = n1;
-    stateData[s1]["out"][s2]["n2"] = n2;
-    stateData[s1]["out"][s2]["agi"] = agi;
-    stateData[s1]["out"]["sorted"].push([s2, n1]);
-    // TODO: Compute and add total income, migration summaries, etc
-  }
-});
-
 // Load in bound migration data from CSV
 d3.csv("stateinflow1516.csv", function(data) {
   for (let i = 0; i < data.length; i++) {
@@ -316,14 +297,60 @@ d3.csv("stateinflow1516.csv", function(data) {
         s2 = parseInt(data[i].y2_statefips),
         n1 = parseInt(data[i].n1);
         n2 = parseInt(data[i].n2);
-        agi = parseInt(data[i].agi);
+        agi = parseInt(data[i].AGI);
+
+    // Create new object for second state if not exists
     if (!(s1 in stateData[s2]["in"])) {
       stateData[s2]["in"][s1] = {};
     }
+
+    // Special cases to calculate more statistics
+    // Population
+    if (s1 === s2 || s1 === 97 || s1 === 98) {
+      if ("population" in stateData[s2]) {
+        stateData[s2]["returns"] += n1;
+        stateData[s2]["population"] += n2;
+        stateData[s2]["agi"] += agi;
+      }else {
+        stateData[s2]["returns"] = n1;
+        stateData[s2]["population"] = n2;
+        stateData[s2]["agi"] = agi;
+      }
+    }
+
     stateData[s2]["in"][s1]["n1"] = n1;
     stateData[s2]["in"][s1]["n2"] = n2;
     stateData[s2]["in"][s1]["agi"] = agi;
     stateData[s2]["in"]["sorted"].push([s1, n1]);
+    // TODO: Compute and add total income, migration summaries, etc
+  }
+});
+
+// Load out bound migration data from CSV
+d3.csv("stateoutflow1516.csv", function(data) {
+  for (let i = 0; i < data.length; i++) {
+    let s1 = parseInt(data[i].y1_statefips),
+        s2 = parseInt(data[i].y2_statefips),
+        n1 = parseInt(data[i].n1);
+        n2 = parseInt(data[i].n2);
+        agi = parseInt(data[i].AGI);
+    if (!(s2 in stateData[s1]["out"])) {
+      stateData[s1]["out"][s2] = {};
+    }
+
+    // Special cases to calculate more statistics
+    // Population
+    if (s2 === 96) {
+      stateData[s1]["population"] -= n2;
+      stateData[s1]["returns"] -= n1;
+      stateData[s1]["agi"] -= agi;
+      console.log(s1+": "+(stateData[s1]["population"]));
+    }
+
+    stateData[s1]["out"][s2]["n1"] = n1;
+    stateData[s1]["out"][s2]["n2"] = n2;
+    stateData[s1]["out"][s2]["agi"] = agi;
+    stateData[s1]["out"]["sorted"].push([s2, n1]);
     // TODO: Compute and add total income, migration summaries, etc
   }
 });
@@ -379,7 +406,7 @@ function onClickState(d) {
     secondActive.classed("second", false);
     secondActive = null;
 
-  }else if (firstActive !== null && displayMode == "gen") {
+  }else if (firstActive !== null && displayMode === "gen") {
     // Only allow one state to be selected, change selection
     firstActive.classed("first", false);
     firstActive = d3.select(this).classed("first", true);
@@ -634,10 +661,20 @@ function writeInfo() {
         .append("th")
         .attr("colspan", 2)
         .text("General Info");
-    var id = firstActive.data()[0].id;
+    var id = parseInt(firstActive.data()[0].id);
     var row = infoTableBody.append("tr");
     row.append("td").text("FIPS code");
     row.append("td").text(id);
+    row = infoTableBody.append("tr");
+    row.append("td").text("Population");
+    row.append("td").text(stateData[id]["population"]);
+    row = infoTableBody.append("tr");
+    row.append("td").text("# of tax returns");
+    row.append("td").text(stateData[id]["returns"]);
+    row = infoTableBody.append("tr");
+    var income = stateData[id]["agi"]/stateData[id]["returns"]*1000;
+    row.append("td").text("Avg. income per return");
+    row.append("td").text("$"+income.toFixed(2));
 
     // TODO: show more state general info
 
