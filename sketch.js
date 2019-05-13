@@ -5,6 +5,7 @@
 // Global data variables
 var displayMode = "gen",
     colorScheme = "none",
+    years = "1516",
     stateFips = [],
     stateData = {},
     firstActive = null,
@@ -213,6 +214,33 @@ colorSchemeButtons.push(colorSchemeSvg.append("circle")
     .on("click", function() {onClickControls("incomeButton")})
 );
 
+// Drop down selector
+var selectText = d3.select("#controls")
+    .append("text")
+    .style("font-size", "20px")
+    .text("Year Select");
+
+var selectDiv = d3.select("#controls")
+    .append("div")
+    .attr("id", "filters")
+    .style("width", "100%")
+    .style("height", "30px")
+    .style("margin-top", "0px")
+    .style("margin-bottom", "5px")
+
+// Drop down selector
+var selectOptions = selectDiv.append("select")
+    .style("margin-top", "10px")
+    .style("margin-bottom", "10px")
+    .on("change", onYearsSelect);
+
+// Options data
+var selectData = selectOptions.selectAll("option")
+    .data(["2015-2016", "2014-2015"])
+    .enter()
+    .append("option")
+        .text(function(d){return d;});
+
 // Text for info box
 var infoText = d3.select("#controls")
     .append("text")
@@ -270,14 +298,16 @@ var zoom = d3.behavior.zoom()
     //.translateExtent([[0,0],[width, height]]);
 
 
-// Turn zoom listener on
+// Turn zoom listener on, disable default double click zoom
 svg.call(zoom)
     .on("dblclick.zoom", null);
 svg.call(zoom.event);
 
 // Setup data object for all state information
 for (let i = 1; i <= 56; i++) {
-  stateData[i] = {in:{sorted:[]}, out:{sorted:[]}};
+  stateData[i] = {};
+  stateData[i]["1415"] = {in:{sorted:[]}, out:{sorted:[]}};
+  stateData[i]["1516"] = {in:{sorted:[]}, out:{sorted:[]}};
 }
 
 // Load state FIPS codes and names
@@ -291,6 +321,70 @@ d3.csv("fips.csv", function(data) {
 });
 
 // Load in bound migration data from CSV
+d3.csv("stateinflow1415.csv", function(data) {
+  for (let i = 0; i < data.length; i++) {
+    let s1 = parseInt(data[i].y1_statefips),
+        s2 = parseInt(data[i].y2_statefips),
+        n1 = parseInt(data[i].n1);
+        n2 = parseInt(data[i].n2);
+        agi = parseInt(data[i].AGI);
+
+    // Create new object for second state if not exists
+    if (!(s1 in stateData[s2]["1415"]["in"])) {
+      stateData[s2]["1415"]["in"][s1] = {};
+    }
+
+    // Special cases to calculate more statistics
+    // Population
+    if (s1 === s2 || s1 === 97 || s1 === 98) {
+      if ("population" in stateData[s2]) {
+        stateData[s2]["1415"]["returns"] += n1;
+        stateData[s2]["1415"]["population"] += n2;
+        stateData[s2]["1415"]["agi"] += agi;
+      }else {
+        stateData[s2]["1415"]["returns"] = n1;
+        stateData[s2]["1415"]["population"] = n2;
+        stateData[s2]["1415"]["agi"] = agi;
+      }
+    }
+
+    stateData[s2]["1415"]["in"][s1]["n1"] = n1;
+    stateData[s2]["1415"]["in"][s1]["n2"] = n2;
+    stateData[s2]["1415"]["in"][s1]["agi"] = agi;
+    stateData[s2]["1415"]["in"]["sorted"].push([s1, n1]);
+    // TODO: Compute and add total income, migration summaries, etc
+  }
+});
+
+// Load out bound migration data from CSV
+d3.csv("stateoutflow1415.csv", function(data) {
+  for (let i = 0; i < data.length; i++) {
+    let s1 = parseInt(data[i].y1_statefips),
+        s2 = parseInt(data[i].y2_statefips),
+        n1 = parseInt(data[i].n1);
+        n2 = parseInt(data[i].n2);
+        agi = parseInt(data[i].AGI);
+    if (!(s2 in stateData[s1]["1415"]["out"])) {
+      stateData[s1]["1415"]["out"][s2] = {};
+    }
+
+    // Special cases to calculate more statistics
+    // Population
+    if (s2 === 96) {
+      stateData[s1]["1415"]["population"] -= n2;
+      stateData[s1]["1415"]["returns"] -= n1;
+      stateData[s1]["1415"]["agi"] -= agi;
+    }
+
+    stateData[s1]["1415"]["out"][s2]["n1"] = n1;
+    stateData[s1]["1415"]["out"][s2]["n2"] = n2;
+    stateData[s1]["1415"]["out"][s2]["agi"] = agi;
+    stateData[s1]["1415"]["out"]["sorted"].push([s2, n1]);
+    // TODO: Compute and add total income, migration summaries, etc
+  }
+});
+
+// Load in bound migration data from CSV
 d3.csv("stateinflow1516.csv", function(data) {
   for (let i = 0; i < data.length; i++) {
     let s1 = parseInt(data[i].y1_statefips),
@@ -300,28 +394,28 @@ d3.csv("stateinflow1516.csv", function(data) {
         agi = parseInt(data[i].AGI);
 
     // Create new object for second state if not exists
-    if (!(s1 in stateData[s2]["in"])) {
-      stateData[s2]["in"][s1] = {};
+    if (!(s1 in stateData[s2]["1516"]["in"])) {
+      stateData[s2]["1516"]["in"][s1] = {};
     }
 
     // Special cases to calculate more statistics
     // Population
     if (s1 === s2 || s1 === 97 || s1 === 98) {
       if ("population" in stateData[s2]) {
-        stateData[s2]["returns"] += n1;
-        stateData[s2]["population"] += n2;
-        stateData[s2]["agi"] += agi;
+        stateData[s2]["1516"]["returns"] += n1;
+        stateData[s2]["1516"]["population"] += n2;
+        stateData[s2]["1516"]["agi"] += agi;
       }else {
-        stateData[s2]["returns"] = n1;
-        stateData[s2]["population"] = n2;
-        stateData[s2]["agi"] = agi;
+        stateData[s2]["1516"]["returns"] = n1;
+        stateData[s2]["1516"]["population"] = n2;
+        stateData[s2]["1516"]["agi"] = agi;
       }
     }
 
-    stateData[s2]["in"][s1]["n1"] = n1;
-    stateData[s2]["in"][s1]["n2"] = n2;
-    stateData[s2]["in"][s1]["agi"] = agi;
-    stateData[s2]["in"]["sorted"].push([s1, n1]);
+    stateData[s2]["1516"]["in"][s1]["n1"] = n1;
+    stateData[s2]["1516"]["in"][s1]["n2"] = n2;
+    stateData[s2]["1516"]["in"][s1]["agi"] = agi;
+    stateData[s2]["1516"]["in"]["sorted"].push([s1, n1]);
     // TODO: Compute and add total income, migration summaries, etc
   }
 });
@@ -334,23 +428,22 @@ d3.csv("stateoutflow1516.csv", function(data) {
         n1 = parseInt(data[i].n1);
         n2 = parseInt(data[i].n2);
         agi = parseInt(data[i].AGI);
-    if (!(s2 in stateData[s1]["out"])) {
-      stateData[s1]["out"][s2] = {};
+    if (!(s2 in stateData[s1]["1516"]["out"])) {
+      stateData[s1]["1516"]["out"][s2] = {};
     }
 
     // Special cases to calculate more statistics
     // Population
     if (s2 === 96) {
-      stateData[s1]["population"] -= n2;
-      stateData[s1]["returns"] -= n1;
-      stateData[s1]["agi"] -= agi;
-      console.log(s1+": "+(stateData[s1]["population"]));
+      stateData[s1]["1516"]["population"] -= n2;
+      stateData[s1]["1516"]["returns"] -= n1;
+      stateData[s1]["1516"]["agi"] -= agi;
     }
 
-    stateData[s1]["out"][s2]["n1"] = n1;
-    stateData[s1]["out"][s2]["n2"] = n2;
-    stateData[s1]["out"][s2]["agi"] = agi;
-    stateData[s1]["out"]["sorted"].push([s2, n1]);
+    stateData[s1]["1516"]["out"][s2]["n1"] = n1;
+    stateData[s1]["1516"]["out"][s2]["n2"] = n2;
+    stateData[s1]["1516"]["out"][s2]["agi"] = agi;
+    stateData[s1]["1516"]["out"]["sorted"].push([s2, n1]);
     // TODO: Compute and add total income, migration summaries, etc
   }
 });
@@ -442,6 +535,7 @@ function onClickControls(id) {
       displayModeButtons[0].classed("active", true);
       displayMode = "gen";
       if (secondActive !== null) {
+        secondActive.classed("second", false);
         secondActive = null;
       }
     }else if (id === "inButton") {
@@ -486,6 +580,21 @@ function onClickControls(id) {
   }
 }
 
+// Change year selection
+function onYearsSelect() {
+  var selectedIndex = selectOptions.property("selectedIndex"),
+      selectedYears = selectData[0][selectedIndex].__data__;
+  if (selectedYears === "2014-2015") {
+    years = "1415";
+  }else if (selectedYears === "2015-2016") {
+    years = "1516";
+  }
+  drawArrows();
+  zoomToFocus();
+  fillColors();
+  writeInfo();
+}
+
 // Draw any arrows depending on state selection
 function drawArrows() {
   // Remove existing arrows
@@ -524,18 +633,18 @@ function drawArrows() {
 
   }else if (displayMode !== "gen") {
     // Only one state selected, not general display mode
-    var k = 0;
+    var k = 0,
         s1 = parseInt(firstActive.data()[0].id);
-    for (let i = 0; i < stateData[s1][displayMode]["sorted"].length; i++) {
+    for (let i = 0; i < stateData[s1][years][displayMode]["sorted"].length; i++) {
       // Break loop at 5 results
       if (k >= 5) break;
 
       // Skip non-state FIPS and skip self
-      if (!(stateData[s1][displayMode]["sorted"][i][0] in stateFips) ||
-        stateData[s1][displayMode]["sorted"][i][0] === s1) continue;
+      if (!(stateData[s1][years][displayMode]["sorted"][i][0] in stateFips) ||
+        stateData[s1][years][displayMode]["sorted"][i][0] === s1) continue;
 
       // Get state centers 
-      let s2 = stateData[s1][displayMode]["sorted"][i][0],
+      let s2 = stateData[s1][years][displayMode]["sorted"][i][0],
           x1 = stateData[s1]["x"],
           y1 = stateData[s1]["y"],
           x2 = stateData[s2]["x"],
@@ -594,16 +703,16 @@ function zoomToFocus() {
         s1 = parseInt(firstActive.data()[0].id);
         k = 0;
 
-    for (let i = 0; i < stateData[s1][displayMode]["sorted"].length; i++) {
+    for (let i = 0; i < stateData[s1][years][displayMode]["sorted"].length; i++) {
       // Break loop at 5 results
       if (k >= 5) break;
 
       // Skip non-state FIPS and skip self
-      if (!(stateData[s1][displayMode]["sorted"][i][0] in stateFips) ||
-        stateData[s1][displayMode]["sorted"][i][0] === s1) continue;
+      if (!(stateData[s1][years][displayMode]["sorted"][i][0] in stateFips) ||
+        stateData[s1][years][displayMode]["sorted"][i][0] === s1) continue;
 
       // Get bounding box for second state
-      let s2 = stateData[s1][displayMode]["sorted"][i][0],
+      let s2 = stateData[s1][years][displayMode]["sorted"][i][0],
           s2Feature = g.selectAll("path")
               .filter(function(d) {
                   if (d === undefined) return false;
@@ -667,14 +776,14 @@ function writeInfo() {
     row.append("td").text(id);
     row = infoTableBody.append("tr");
     row.append("td").text("Population");
-    row.append("td").text(stateData[id]["population"]);
+    row.append("td").text(stateData[id][years]["population"]);
     row = infoTableBody.append("tr");
     row.append("td").text("# of tax returns");
-    row.append("td").text(stateData[id]["returns"]);
+    row.append("td").text(stateData[id][years]["returns"]);
     row = infoTableBody.append("tr");
-    var income = stateData[id]["agi"]/stateData[id]["returns"]*1000;
+    var income = stateData[id][years]["agi"]/stateData[id][years]["returns"]*1000;
     row.append("td").text("Avg. income per return");
-    row.append("td").text("$"+income.toFixed(2));
+    row.append("td").text("$"+income.toFixed(0));
 
     // TODO: show more state general info
 
@@ -700,15 +809,15 @@ function writeInfo() {
         .text(function(d) {return d});
 
     // Populate table rows
-    for (let i = 0; i < stateData[s1][displayMode]["sorted"].length; i++) {
+    for (let i = 0; i < stateData[s1][years][displayMode]["sorted"].length; i++) {
 
       // Skip non-state FIPS and skip self
-      if (!(stateData[s1][displayMode]["sorted"][i][0] in stateFips) ||
-        stateData[s1][displayMode]["sorted"][i][0] === s1) continue;
+      if (!(stateData[s1][years][displayMode]["sorted"][i][0] in stateFips) ||
+        stateData[s1][years][displayMode]["sorted"][i][0] === s1) continue;
 
       // Get state name and migration total
-      let name = stateData[stateData[s1][displayMode]["sorted"][i][0]]["name"],
-          migrants = stateData[s1][displayMode]["sorted"][i][1];
+      let name = stateData[stateData[s1][years][displayMode]["sorted"][i][0]]["name"],
+          migrants = stateData[s1][years][displayMode]["sorted"][i][1];
 
       // No migrants, skip
       if (migrants < 0) continue;
