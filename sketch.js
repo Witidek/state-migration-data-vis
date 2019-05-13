@@ -17,8 +17,7 @@ var width = 1080,
     translate = [0, 0],
     scale = 1.0;
 
-// albersUSA is a type of map projection to convert world GPSto the 
-// usual 2D map layout, with Alaska and Hawaii scaled and moved down
+// albersUSA is one type of map projection to convert 3D GPS to 2D layout
 var projection = d3.geo.albersUsa()
     .scale(1000)
     .translate([width / 2, height / 2]);
@@ -50,7 +49,7 @@ var g = svg.append("g");
 var displayModeText = d3.select("#controls")
     .append("text")
     .style("font-size", "20px")
-    .style("margin", "20px")
+    //.style("margin", "20px")
     .text("Display Mode");
 
 // Div box to contain display mode options
@@ -59,8 +58,8 @@ var displayModeDiv = d3.select("#controls")
     .attr("id", "ops")
     .style("width", "100%")
     .style("height", "150px")
-    .style("margin-top", "10px")
-    .style("margin-bottom", "10px")
+    //.style("margin-top", "10px")
+    //.style("margin-bottom", "10px")
     //.style("border", "2px solid")
     .style("border-color", "green");
 
@@ -245,7 +244,7 @@ var selectData = selectOptions.selectAll("option")
 var infoText = d3.select("#controls")
     .append("text")
     .style("font-size", "20px")
-    .text("State Information");
+    .text("");
 
 // Div for info box left side
 var infoDiv = d3.select("#controls")
@@ -348,6 +347,10 @@ d3.csv("stateinflow1415.csv", function(data) {
       }
     }
 
+    // Special case to skip overwriting FIPS = 97 because both 
+    // same state and overall US use same FIPS in data!
+    if (s1 === 97 && "n1" in stateData[s2]["1415"]["in"][s1]) continue;
+
     stateData[s2]["1415"]["in"][s1]["n1"] = n1;
     stateData[s2]["1415"]["in"][s1]["n2"] = n2;
     stateData[s2]["1415"]["in"][s1]["agi"] = agi;
@@ -375,6 +378,10 @@ d3.csv("stateoutflow1415.csv", function(data) {
       stateData[s1]["1415"]["returns"] -= n1;
       stateData[s1]["1415"]["agi"] -= agi;
     }
+
+    // Special case to skip overwriting FIPS = 97 because both 
+    // same state and overall US use same FIPS in data!
+    if (s2 === 97 && "n1" in stateData[s1]["1415"]["out"][s2]) continue;
 
     stateData[s1]["1415"]["out"][s2]["n1"] = n1;
     stateData[s1]["1415"]["out"][s2]["n2"] = n2;
@@ -412,6 +419,10 @@ d3.csv("stateinflow1516.csv", function(data) {
       }
     }
 
+    // Special case to skip overwriting FIPS = 97 because both 
+    // same state and overall US use same FIPS in data!
+    if (s1 === 97 && "n1" in stateData[s2]["1516"]["in"][s1]) continue;
+
     stateData[s2]["1516"]["in"][s1]["n1"] = n1;
     stateData[s2]["1516"]["in"][s1]["n2"] = n2;
     stateData[s2]["1516"]["in"][s1]["agi"] = agi;
@@ -439,6 +450,10 @@ d3.csv("stateoutflow1516.csv", function(data) {
       stateData[s1]["1516"]["returns"] -= n1;
       stateData[s1]["1516"]["agi"] -= agi;
     }
+
+    // Special case to skip overwriting FIPS = 97 because both 
+    // same state and overall US use same FIPS in data!
+    if (s2 === 97 && "n1" in stateData[s1]["1516"]["out"][s2]) continue;
 
     stateData[s1]["1516"]["out"][s2]["n1"] = n1;
     stateData[s1]["1516"]["out"][s2]["n2"] = n2;
@@ -761,36 +776,65 @@ function writeInfo() {
 
   if (firstActive !== null && secondActive !== null) {
     // Both states selected
+    // Get and set names text
+    var s1 = parseInt(firstActive.data()[0].id),
+        s2 = parseInt(secondActive.data()[0].id),
+        name1 = stateData[s1]["name"];
+        name2 = stateData[s2]["name"];
+
+    if (displayMode === "in") {
+      infoText.text(name2 + " to " + name1);
+    }else if (displayMode === "out") {
+      infoText.text(name1 + " to " + name2);
+    }
+
     // TODO: show comparisons between states
 
   }else if (firstActive !== null && displayMode === "gen") {
     // One state selected, general info
-    
+
+    // Get and set name text
+    var id = parseInt(firstActive.data()[0].id),
+        name = stateData[id]["name"];
+
+    infoText.text(name);
+
     infoTableHeader.append("tr")
         .append("th")
         .attr("colspan", 2)
         .text("General Info");
+    
     var id = parseInt(firstActive.data()[0].id);
     var row = infoTableBody.append("tr");
     row.append("td").text("FIPS code");
     row.append("td").text(id);
     row = infoTableBody.append("tr");
     row.append("td").text("Population");
-    row.append("td").text(stateData[id][years]["population"]);
+    row.append("td").text(stateData[id][years]["population"].toLocaleString("en"));
     row = infoTableBody.append("tr");
     row.append("td").text("# of tax returns");
-    row.append("td").text(stateData[id][years]["returns"]);
+    row.append("td").text(stateData[id][years]["returns"].toLocaleString("en"));
     row = infoTableBody.append("tr");
     var income = stateData[id][years]["agi"]/stateData[id][years]["returns"]*1000;
     row.append("td").text("Avg. income per return");
-    row.append("td").text("$"+income.toFixed(0));
+    row.append("td").text("$"+Math.floor(income).toLocaleString("en"));
+    row = infoTableBody.append("tr");
+    row.append("td").text("Out migration");
+    row.append("td").text(stateData[id][years]["out"][97]["n2"].toLocaleString("en"));
+    row = infoTableBody.append("tr");
+    row.append("td").text("In migration");
+    row.append("td").text(stateData[id][years]["in"][97]["n2"].toLocaleString("en"));
 
     // TODO: show more state general info
 
   }else if (firstActive !== null) {
     // One state selected, in or out
-    // Get state id
-    var s1 = parseInt(firstActive.data()[0].id);
+    // Get state id, name, and direction
+    var s1 = parseInt(firstActive.data()[0].id),
+        name = stateData[s1]["name"],
+        direction = displayMode === "in" ? " Inbound" : " Outbound";
+
+    infoText.text(name + direction);
 
     // Choose column headers based on display mode
     var columns;
@@ -830,6 +874,7 @@ function writeInfo() {
 
   }else {
     // No states selected
+    infoText.text("");
     // TODO: maybe print some summary info?
   }
 }
@@ -850,27 +895,27 @@ function getStatePath(id) {
 }
 
 function computeBezier(x1, y1, x2, y2) {
-    // Decide curve distance based on points distance
-    var dist = Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2)),
-        r = dist / 10;
+  // Decide curve distance based on points distance
+  var dist = Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2)),
+      r = dist / 10;
 
-    // Compute line midpoint m
-    var mx = x1 + (x2 - x1) / 2,
-        my = y1 + (y2 - y1) / 2;
+  // Compute line midpoint m
+  var mx = x1 + (x2 - x1) / 2,
+      my = y1 + (y2 - y1) / 2;
 
-    // Compute control point for curve
-    var dx = x2 - x1,
-        dy = y2 - y1,
-        angle = Math.atan(dy / dx),
-        cosAngle = Math.cos(angle),
-        sinAngle = Math.cos(angle),
-        cx = mx - sinAngle * r;
-        cy = my - cosAngle * r;
+  // Compute control point for curve
+  var dx = x2 - x1,
+      dy = y2 - y1,
+      angle = Math.atan(dy / dx),
+      cosAngle = Math.cos(angle),
+      sinAngle = Math.cos(angle),
+      cx = mx - sinAngle * r;
+      cy = my - cosAngle * r;
 
-    // Return Bezier curve path string
-    return "M" + x1 + "," + y1 +
-           "Q" + cx + "," + cy +
-           " " + x2 + "," + y2;
+  // Return Bezier curve path string
+  return "M" + x1 + "," + y1 +
+         "Q" + cx + "," + cy +
+         " " + x2 + "," + y2;
 }
 
 function zoomToBounds(bounds) {
