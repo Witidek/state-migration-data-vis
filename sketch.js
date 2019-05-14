@@ -28,6 +28,10 @@ var path = d3.geo.path()
 
 // Build HTML and SVG elements -----------------------------------------
 
+// TODO: Redesign divs in #control to scale, consider weird browsers
+// TODO: Better buttons
+// TODO: Reduce lines of code with more CSS styles
+
 // Set up main canvas SVG (Scalable Vector Graphics)
 var svg = d3.select("#canvas").append("svg")
     .attr("width", width)
@@ -270,6 +274,7 @@ var infoTable = infoDiv.append("table")
 var infoTableHeader = infoTable.append("thead"),
     infoTableBody = infoTable.append("tbody");
 
+// TODO: Consider clearer markers, maybe no fill
 
 // Create dot marker
 svg.append("defs").append("marker")
@@ -296,7 +301,10 @@ svg.append("defs").append("marker")
 
 // Load data and more setup --------------------------------------------
 
-// No color
+// TODO: Make color scales easier to see
+// TODO: Add color legend
+
+// Pastel color scale
 var noneColorScale = d3.scale.ordinal()
     .domain([1, 56])
     .range(colorbrewer.Pastel1[9]);
@@ -318,15 +326,13 @@ var incomeColorScale = d3.scale.linear()
 
 // Define zoom behavior in function
 var zoom = d3.behavior.zoom()
-    .on("zoom", zoomed)
-    //.extent([[-width,height],[width, height]]);
     .scaleExtent([0.8,10])
-    //.translateExtent([[0,0],[width, height]]);
-
+    .on("zoom", function(){
+      g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    });    
 
 // Turn zoom listener on, disable default double click zoom
-svg.call(zoom)
-    .on("dblclick.zoom", null);
+svg.call(zoom).on("dblclick.zoom", null);
 svg.call(zoom.event);
 
 // Setup data object for all state information
@@ -525,6 +531,7 @@ d3.json("states.json", function(error, json) {
 
 // Functions -----------------------------------------------------------
 
+// TODO: Consider how to do 2 state selection so it makes more sense
 // Event handler for clicking within a state
 function onClickState() {
   if (firstActive !== null && firstActive.node() === this) {
@@ -715,7 +722,6 @@ function drawArrows() {
         y2 = stateData[s1]["y"];
       }
 
-      console.log(x1, y1, x2, y2);
       // Draw lines
       g.append("g").append("path")
         .attr("d", computeBezier(x1, y1, x2, y2))
@@ -733,6 +739,7 @@ function drawArrows() {
   }
 }
 
+// TODO: Consider toning down focus zoom, fix cases
 // Pan and zoom to current focus
 function zoomToFocus() {
   var polygon = null;
@@ -812,7 +819,6 @@ function fillColors() {
       let id = parseInt(d.id),
           popIn = stateData[id][years]["in"][96]["n2"],
           popOut = stateData[id][years]["out"][96]["n2"];
-          console.log(id + ": " + (popIn-popOut));
       return deltaColorScale(popIn - popOut);
     }
   }else if (colorScheme === "income") {
@@ -828,6 +834,7 @@ function fillColors() {
       .attr("fill", fillFunction);
 }
 
+// TODO: More info for all cases...
 // Update information text box
 function writeInfo() {
   // Remove old table rows
@@ -958,21 +965,6 @@ function writeInfo() {
   }
 }
 
-function getStatePath(id) {
-  // Get all paths with id
-  var paths = g.selectAll("path")
-      .filter(function(d) {
-          if (d === undefined) return false;
-          return id == d.id;
-      });
-
-  // Check for path found, return if none
-  if (paths.length < 1) return undefined;
-      
-  // Return state path
-  return paths[0];
-}
-
 function computeBezier(x1, y1, x2, y2) {
   // Decide curve distance based on points distance
   var dist = Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2)),
@@ -991,13 +983,13 @@ function computeBezier(x1, y1, x2, y2) {
       cx = mx - sinAngle * r;
       cy = my - cosAngle * r;
 
-      console.log(cx, cy)
   // Return Bezier curve path string
   return "M" + x1 + "," + y1 +
          "Q" + cx + "," + cy +
          " " + x2 + "," + y2;
 }
 
+// TODO: Consider reducing zoom, combine this function w/ zoomToFocus()
 function zoomToBounds(bounds) {
   // Compute scale and translate to focus on overall bounding box
   var dx = bounds[1][0] - bounds[0][0],
@@ -1031,11 +1023,6 @@ function reset() {
   svg.transition()
       .duration(750)
       .call(zoom.translate([0, 0]).scale(1).event);
-}
-
-// Zoom behavior
-function zoomed() {
-  g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
 // If the drag behavior prevents the default click,
