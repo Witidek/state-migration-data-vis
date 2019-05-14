@@ -1,11 +1,5 @@
 // Authors: Dishen Zhao, Ning Shi
 
-d3.selection.prototype.moveToFront = function() {
-  return this.each(function(){
-    this.parentNode.appendChild(this);
-  });
-};
-
 // Variables and setup -------------------------------------------------
 
 // Global data variables
@@ -80,6 +74,7 @@ displayModeTexts.push(displayModeSvg.append("text")
     .attr("y", 42)
     .attr("font-weight", "bold")
     .text("General Information")
+    .on("click", function() {onClickControls("genButton")})
 );
 
 // Text for inbound migration
@@ -87,6 +82,7 @@ displayModeTexts.push(displayModeSvg.append("text")
     .attr("x", 48)
     .attr("y", 80)
     .text("Inbound Migration")
+    .on("click", function() {onClickControls("outButton")})
 );
 
 // Text for outbound migration
@@ -94,6 +90,7 @@ displayModeTexts.push(displayModeSvg.append("text")
     .attr("x", 48)
     .attr("y", 117)
     .text("Outbound Migration")
+    .on("click", function() {onClickControls("outButton")})
 );
 
 // Button for general information
@@ -154,7 +151,8 @@ colorSchemeTexts.push(colorSchemeSvg.append("text")
     .attr("x", 48)
     .attr("y", 25)
     .attr("font-weight", "bold")
-    .text("None")
+    .text("Colorful")
+    .on("click", function() {onClickControls("noneButton")})
 );
 
 // Text for population color scheme
@@ -162,6 +160,7 @@ colorSchemeTexts.push(colorSchemeSvg.append("text")
     .attr("x", 48)
     .attr("y", 62)
     .text("Population")
+    .on("click", function() {onClickControls("popButton")})
 );
 
 // Text for migration delta color scheme
@@ -169,6 +168,7 @@ colorSchemeTexts.push(colorSchemeSvg.append("text")
     .attr("x", 48)
     .attr("y", 99)
     .text("Migration Delta")
+    .on("click", function() {onClickControls("deltaButton")})
 );
 
 // Text for income color scheme
@@ -176,6 +176,7 @@ colorSchemeTexts.push(colorSchemeSvg.append("text")
     .attr("x", 48)
     .attr("y", 135)
     .text("Income")
+    .on("click", function() {onClickControls("incomeButton")})
 );
 
 // Button for none color scheme
@@ -342,6 +343,8 @@ d3.csv("fips.csv", function(data) {
     stateFips.push(id);
     stateData[id]["name"] = data[i].name;
     stateData[id]["abrev"] = data[i].abrev;
+    stateData[id]["x"] = parseInt(data[i].x);
+    stateData[id]["y"] = parseInt(data[i].y);
   }
 });
 
@@ -513,15 +516,9 @@ d3.json("states.json", function(error, json) {
       .attr("id", function(d){return "text"+parseInt(d.id)})
       .attr("font-size", "12px")
       .attr("pointer-events", "none")
+      .attr("text-anchor", "middle")
       .attr("transform", function(d) {
-           // TODO: Manually fix label positions
-          let id = parseInt(d.id),
-              b = path.bounds(d),
-              x = (b[0][0] + b[1][0]) / 2 * scale + translate[0],
-              y = (b[0][1] + b[1][1]) / 2 * scale + translate[1];
-          stateData[id]["x"] = x;
-          stateData[id]["y"] = y;
-          return "translate(" + (x-12) + ", " + y + ")";
+          return "translate(" + stateData[id]["x"] + ", " + stateData[id]["y"] + ")";
       })
       .text(function(d) {return stateData[parseInt(d.id)]["abrev"]});
 });
@@ -718,6 +715,7 @@ function drawArrows() {
         y2 = stateData[s1]["y"];
       }
 
+      console.log(x1, y1, x2, y2);
       // Draw lines
       g.append("g").append("path")
         .attr("d", computeBezier(x1, y1, x2, y2))
@@ -993,6 +991,7 @@ function computeBezier(x1, y1, x2, y2) {
       cx = mx - sinAngle * r;
       cy = my - cosAngle * r;
 
+      console.log(cx, cy)
   // Return Bezier curve path string
   return "M" + x1 + "," + y1 +
          "Q" + cx + "," + cy +

@@ -1,52 +1,52 @@
-fips,abrev,name
-01,AL,Alabama
-02,AK,Alaska
-04,AZ,Arizona
-05,AR,Arkansas
-06,CA,California
-08,CO,Colorado
-09,CT,Connecticut
-10,DE,Delaware
-11,DC,District of Columbia
-12,FL,Florida
-13,GA,Georgia
-15,HI,Hawaii
-16,ID,Idaho
-17,IL,Illinois
-18,IN,Indiana
-19,IA,Iowa
-20,KS,Kansas
-21,KY,Kentucky
-22,LA,Louisiana
-23,ME,Maine
-24,MD,Maryland
-25,MA,Massachusetts
-26,MI,Michigan
-27,MN,Minnesota
-28,MS,Mississippi
-29,MO,Missouri
-30,MT,Montana
-31,NE,Nebraska
-32,NV,Nevada
-33,NH,New Hampshire
-34,NJ,New Jersey
-35,NM,New Mexico
-36,NY,New York
-37,NC,North Carolina
-38,ND,North Dakota
-39,OH,Ohio
-40,OK,Oklahoma
-41,OR,Oregon
-42,PA,Pennsylvania
-44,RI,Rhode Island
-45,SC,Sourth Carolina
-46,SD,South Dakota
-47,TN,Tennessee
-48,TX,Texas
-49,UT,Utah
-50,VT,Vermont
-51,VA,Virginia
-53,WA,Washington
-54,WV,West Virginia
-55,WI,Wisconsin
-56,WY,Wyoming
+fips,abrev,name,x,y
+01,AL,Alabama,681,460
+02,AK,Alaska,242,525
+04,AZ,Arizona,321,420
+05,AR,Arkansas,594,431
+06,CA,California,218,349
+08,CO,Colorado,414,350
+09,CT,Connecticut,847,275
+10,DE,Delaware,840,329
+11,DC,District of Columbia,840,340
+12,FL,Florida,766,529
+13,GA,Georgia,729,456
+15,HI,Hawaii,378,568
+16,ID,Idaho,317,240
+17,IL,Illinois,640,335
+18,IN,Indiana,679,334
+19,IA,Iowa,582,302
+20,KS,Kansas,516,363
+21,KY,Kentucky,697,374
+22,LA,Louisiana,598,493
+23,ME,Maine,873,201
+24,MD,Maryland,806,328
+25,MA,Massachusetts,850,261
+26,MI,Michigan,683,268
+27,MN,Minnesota,570,230
+28,MS,Mississippi,639,464
+29,MO,Missouri,597,365
+30,MT,Montana,385,201
+31,NE,Nebraska,500,308
+32,NV,Nevada,271,320
+33,NH,New Hampshire,852,245
+34,NJ,New Jersey,830,313
+35,NM,New Mexico,403,428
+36,NY,New York,807,258
+37,NC,North Carolina,776,399
+38,ND,North Dakota,496,204
+39,OH,Ohio,721,321
+40,OK,Oklahoma,522,418
+41,OR,Oregon,245,227
+42,PA,Pennsylvania,786,302
+44,RI,Rhode Island,875,280
+45,SC,Sourth Carolina,765,432
+46,SD,South Dakota,494,261
+47,TN,Tennessee,689,407
+48,TX,Texas,493,485
+49,UT,Utah,340,334
+50,VT,Vermont,835,228
+51,VA,Virginia,781,362
+53,WA,Washington,260,173
+54,WV,West Virginia,752,350
+55,WI,Wisconsin,622,257
+56,WY,Wyoming,401,275
