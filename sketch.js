@@ -1,5 +1,11 @@
 // Authors: Dishen Zhao, Ning Shi
 
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+    this.parentNode.appendChild(this);
+  });
+};
+
 // Variables and setup -------------------------------------------------
 
 // Global data variables
@@ -289,6 +295,26 @@ svg.append("defs").append("marker")
 
 // Load data and more setup --------------------------------------------
 
+// No color
+var noneColorScale = d3.scale.ordinal()
+    .domain([1, 56])
+    .range(colorbrewer.Pastel1[9]);
+
+// Population color scale
+var popColorScale = d3.scale.linear()
+    .domain([500000, 35000000])
+    .range(["#DFFBFF", "#006370"]);
+
+// Migration delta color scale
+var deltaColorScale = d3.scale.linear()
+    .domain([-200000, 0, 200000])
+    .range(["#C23B22", "#FDFD96", "#03C03C"]);
+
+// Income color scale
+var incomeColorScale = d3.scale.linear()
+    .domain([50000, 110000])
+    .range(["#DFFFDF", "#008000"]);
+
 // Define zoom behavior in function
 var zoom = d3.behavior.zoom()
     .on("zoom", zoomed)
@@ -474,13 +500,17 @@ d3.json("states.json", function(error, json) {
       .attr("d", path)
       .attr("id", function(d){return "path"+parseInt(d.id)})
       .attr("class", "feature")
-      .attr("fill", "#ccc")
+      .attr("fill", function(d){
+          let id = parseInt(d.id);
+          return noneColorScale(id);
+      })
       .on("click", onClickState);
 
   // Draw state text
   g.selectAll("text")
       .data(json.features)
       .enter().append("text")
+      .attr("id", function(d){return "text"+parseInt(d.id)})
       .attr("font-size", "12px")
       .attr("pointer-events", "none")
       .attr("transform", function(d) {
@@ -499,7 +529,7 @@ d3.json("states.json", function(error, json) {
 // Functions -----------------------------------------------------------
 
 // Event handler for clicking within a state
-function onClickState(d) {
+function onClickState() {
   if (firstActive !== null && firstActive.node() === this) {
     // Reset fully if clicking first selected state
     if (secondActive !== null) {
@@ -518,6 +548,7 @@ function onClickState(d) {
     // Only allow one state to be selected, change selection
     firstActive.classed("first", false);
     firstActive = d3.select(this).classed("first", true);
+    moveToFront(parseInt(firstActive.data()[0].id));
 
   }else if (firstActive !== null) {
     // First state selected, now select second state
@@ -526,14 +557,29 @@ function onClickState(d) {
       secondActive = null;
     }
     secondActive = d3.select(this).classed("second", true);
+    moveToFront(parseInt(secondActive.data()[0].id));
+    moveToFront(parseInt(firstActive.data()[0].id));
 
   }else {
     firstActive = d3.select(this).classed("first", true);
+    moveToFront(parseInt(firstActive.data()[0].id));
   }
 
   drawArrows();
   zoomToFocus();
   writeInfo();
+}
+
+// Move state path and its text label to front
+function moveToFront(id) {
+  var state = g.select("#path" + id);
+  state.each(function(){
+    this.parentNode.appendChild(this);
+  });
+  var label = g.select("#text" + id);
+  label.each(function(){
+    this.parentNode.appendChild(this);
+  });
 }
 
 // Event handler for control buttons
@@ -577,7 +623,6 @@ function onClickControls(id) {
       colorSchemeTexts[0].attr("font-weight", "bold");
       colorSchemeButtons[0].classed("active", true);
       colorScheme = "none";
-      console.log(translate);
     }else if (id === "popButton") {
       colorSchemeTexts[1].attr("font-weight", "bold");
       colorSchemeButtons[1].classed("active", true);
@@ -751,21 +796,38 @@ function zoomToFocus() {
 
 // Update color scheme
 function fillColors() {
-  // Current color scheme selected is in var colorScheme
-  // This is the set of possible values
-  // colorScheme = {"none", "pop", "delta", "income"}
+  var fillFunction = null;
 
-  // EXAMPLE: To change one state (Alabama) fill by state id
+  if (colorScheme === "none") {
+    fillFunction = function(d) {
+      let id = parseInt(d.id);
+      return noneColorScale(id);
+    }
+  }else if (colorScheme === "pop") {
+    fillFunction = function(d) {
+      let id = parseInt(d.id),
+          pop = stateData[id][years]["population"];
+      return popColorScale(pop);
+    }
+  }else if (colorScheme === "delta") {
+    fillFunction = function(d) {
+      let id = parseInt(d.id),
+          popIn = stateData[id][years]["in"][96]["n2"],
+          popOut = stateData[id][years]["out"][96]["n2"];
+          console.log(id + ": " + (popIn-popOut));
+      return deltaColorScale(popIn - popOut);
+    }
+  }else if (colorScheme === "income") {
+    fillFunction = function(d) {
+      let id = parseInt(d.id),
+          agi = stateData[id][years]["agi"],
+          returns = stateData[id][years]["returns"];
+      return incomeColorScale(agi / returns * 1000);
+    }
+  }
 
-  //var state = getStatePath(1);
-  //state.attr("fill", "red");
-
-  // EXAMPLE: To change all state fill with function
-
-  //g.selectAll("path")
-  //    .attr("fill", function(d) {
-  //        return "rgb(" + 4 * d.id + ",100,100)";
-  //    });
+  g.selectAll(".feature")
+      .attr("fill", fillFunction);
 }
 
 // Update information text box
@@ -779,14 +841,33 @@ function writeInfo() {
     // Get and set names text
     var s1 = parseInt(firstActive.data()[0].id),
         s2 = parseInt(secondActive.data()[0].id),
-        name1 = stateData[s1]["name"];
-        name2 = stateData[s2]["name"];
+        name1 = stateData[s1]["name"],
+        name2 = stateData[s2]["name"],
+        abrev1 = stateData[s1]["abrev"],
+        abrev2 = stateData[s2]["abrev"];
 
     if (displayMode === "in") {
       infoText.text(name2 + " to " + name1);
     }else if (displayMode === "out") {
       infoText.text(name1 + " to " + name2);
     }
+
+    // Write column headers
+    infoTableHeader.append("tr")
+        .selectAll("th")
+        .data(["", abrev1, abrev2])
+        .enter()
+        .append("th")
+        .text(function(d) {return d});
+
+    var row = infoTableBody.append("tr");
+    row.append("td").text("FIPS");
+    row.append("td").text(s1);
+    row.append("td").text(s2);
+    row = infoTableBody.append("tr");
+    row.append("td").text("Pop.");
+    row.append("td").text(stateData[s1][years]["population"].toLocaleString("en"));
+    row.append("td").text(stateData[s2][years]["population"].toLocaleString("en"));
 
     // TODO: show comparisons between states
 
@@ -869,7 +950,7 @@ function writeInfo() {
       // Make row
       let row = infoTableBody.append("tr");
       row.append("td").text(name);
-      row.append("td").text(migrants);
+      row.append("td").text(migrants.toLocaleString("en"));
     }
 
   }else {
