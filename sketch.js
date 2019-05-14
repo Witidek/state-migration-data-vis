@@ -524,6 +524,7 @@ d3.json("states.json", function(error, json) {
       .attr("pointer-events", "none")
       .attr("text-anchor", "middle")
       .attr("transform", function(d) {
+          let id = parseInt(d.id);
           return "translate(" + stateData[id]["x"] + ", " + stateData[id]["y"] + ")";
       })
       .text(function(d) {return stateData[parseInt(d.id)]["abrev"]});
