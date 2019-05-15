@@ -326,7 +326,7 @@ var incomeColorScale = d3.scale.linear()
 
 // Define zoom behavior in function
 var zoom = d3.behavior.zoom()
-    .scaleExtent([0.8,10])
+    .scaleExtent([1,8])
     .on("zoom", function(){
       g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     });    
@@ -997,8 +997,9 @@ function zoomToBounds(bounds) {
       dy = bounds[1][1] - bounds[0][1],
       x = (bounds[0][0] + bounds[1][0]) / 2,
       y = (bounds[0][1] + bounds[1][1]) / 2,
-      scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height))),
+      scale = Math.max(1, Math.min(2.5, 0.9 / Math.max(dx / width, dy / height))),
       translate = [width / 2 - scale * x, height / 2 - scale * y];
+      console.log(scale);
 
   // Translate and scale to zoom into state smoothly with duration
   svg.transition()
