@@ -23,8 +23,7 @@ var projection = d3.geo.albersUsa()
     .translate([width / 2, height / 2]);
 
 // Path will be the drawn graphics made from the projection
-var path = d3.geo.path()
-    .projection(projection);
+var path = d3.geo.path().projection(projection);
 
 // Build HTML and SVG elements -----------------------------------------
 
@@ -43,7 +42,6 @@ svg.append("rect")
     .attr("class", "background")
     .attr("width", width)
     .attr("height", height)
-    //.style("fill", "rgb(196,238,252)")
     .on("click", reset);
 
 // Create inner SVG element to apply transformations on
@@ -274,8 +272,6 @@ var infoTable = infoDiv.append("table")
 var infoTableHeader = infoTable.append("thead"),
     infoTableBody = infoTable.append("tbody");
 
-// TODO: Consider clearer markers, maybe no fill
-
 // Create dot marker
 svg.append("defs").append("marker")
     .attr("id", "circleMarker")
@@ -314,15 +310,54 @@ var popColorScale = d3.scale.linear()
     .domain([500000, 35000000])
     .range(["#DFFBFF", "#006370"]);
 
+// Population color gradient
+var popGradient = svg.append("defs")
+    .append("linearGradient")
+    .attr("id", "popGradient")
+    .attr("x2", "0%")
+    .attr("y1", "100%")
+    .selectAll("stop")
+      .data(scaleToGradient(popColorScale))
+      .enter()
+      .append("stop")
+      .attr("offset", function(d){return d.offset})
+      .attr("stop-color", function(d){return d.color});
+
 // Migration delta color scale
 var deltaColorScale = d3.scale.linear()
     .domain([-200000, 0, 200000])
     .range(["#C23B22", "#FDFD96", "#03C03C"]);
 
+// Migration delta color gradient
+var deltaGradient = svg.append("defs")
+    .append("linearGradient")
+    .attr("id", "deltaGradient")
+    .attr("x2", "0%")
+    .attr("y1", "100%")
+    .selectAll("stop")
+      .data(scaleToGradient(deltaColorScale))
+      .enter()
+      .append("stop")
+      .attr("offset", function(d){return d.offset})
+      .attr("stop-color", function(d){return d.color});
+
 // Income color scale
 var incomeColorScale = d3.scale.linear()
     .domain([50000, 110000])
     .range(["#DFFFDF", "#008000"]);
+
+// Income color gradient
+var incomeGradient = svg.append("defs")
+    .append("linearGradient")
+    .attr("id", "incomeGradient")
+    .attr("x2", "0%")
+    .attr("y1", "100%")
+    .selectAll("stop")
+      .data(scaleToGradient(incomeColorScale))
+      .enter()
+      .append("stop")
+      .attr("offset", function(d){return d.offset})
+      .attr("stop-color", function(d){return d.color});
 
 // Define zoom behavior in function
 var zoom = d3.behavior.zoom()
@@ -528,6 +563,28 @@ d3.json("states.json", function(error, json) {
           return "translate(" + stateData[id]["x"] + ", " + stateData[id]["y"] + ")";
       })
       .text(function(d) {return stateData[parseInt(d.id)]["abrev"]});
+
+  // Draw box around alaska
+  var alaska = path.bounds(g.select("#path2").data()[0]);
+  g.append("rect")
+      .attr("width", alaska[1][0] - alaska[0][0] + 10)
+      .attr("height", alaska[1][1] - alaska[0][1] + 10)
+      .attr("x", alaska[0][0] - 5)
+      .attr("y", alaska[0][1] - 5)
+      .style("stroke-width", 2)
+      .style("stroke", "black")
+      .style("fill", "none");
+
+  // Draw box around hawaii
+  var hawaii = path.bounds(g.select("#path15").data()[0]);
+  g.append("rect")
+      .attr("width", hawaii[1][0] - hawaii[0][0] + 10)
+      .attr("height", hawaii[1][1] - hawaii[0][1] + 10)
+      .attr("x", hawaii[0][0] - 5)
+      .attr("y", hawaii[0][1] - 5)
+      .style("stroke-width", 2)
+      .style("stroke", "black")
+      .style("fill", "none");
 });
 
 // Functions -----------------------------------------------------------
@@ -550,12 +607,6 @@ function onClickState() {
     secondActive = null;
 
   }else if (firstActive !== null && displayMode === "gen") {
-    // Only allow one state to be selected, change selection
-    firstActive.classed("first", false);
-    firstActive = d3.select(this).classed("first", true);
-    moveToFront(parseInt(firstActive.data()[0].id));
-
-  }else if (firstActive !== null) {
     // First state selected, now select second state
     if (secondActive !== null) {
       secondActive.classed("second", false);
@@ -564,8 +615,15 @@ function onClickState() {
     secondActive = d3.select(this).classed("second", true);
     moveToFront(parseInt(secondActive.data()[0].id));
     moveToFront(parseInt(firstActive.data()[0].id));
+    
+  }else if (firstActive !== null) {
+    // Only allow one state to be selected, change selection
+    firstActive.classed("first", false);
+    firstActive = d3.select(this).classed("first", true);
+    moveToFront(parseInt(firstActive.data()[0].id));
 
   }else {
+    // Select first state
     firstActive = d3.select(this).classed("first", true);
     moveToFront(parseInt(firstActive.data()[0].id));
   }
@@ -573,18 +631,6 @@ function onClickState() {
   drawArrows();
   zoomToFocus();
   writeInfo();
-}
-
-// Move state path and its text label to front
-function moveToFront(id) {
-  var state = g.select("#path" + id);
-  state.each(function(){
-    this.parentNode.appendChild(this);
-  });
-  var label = g.select("#text" + id);
-  label.each(function(){
-    this.parentNode.appendChild(this);
-  });
 }
 
 // Event handler for control buttons
@@ -600,18 +646,22 @@ function onClickControls(id) {
       displayModeTexts[0].attr("font-weight", "bold");
       displayModeButtons[0].classed("active", true);
       displayMode = "gen";
-      if (secondActive !== null) {
-        secondActive.classed("second", false);
-        secondActive = null;
-      }
     }else if (id === "inButton") {
       displayModeTexts[1].attr("font-weight", "bold");
       displayModeButtons[1].classed("active", true);
       displayMode = "in";
+      if (secondActive !== null) {
+        secondActive.classed("second", false);
+        secondActive = null;
+      }
     }else if (id === "outButton") {
       displayModeTexts[2].attr("font-weight", "bold");
       displayModeButtons[2].classed("active", true);
       displayMode = "out";
+      if (secondActive !== null) {
+        secondActive.classed("second", false);
+        secondActive = null;
+      }
     }
     drawArrows();
     zoomToFocus();
@@ -623,6 +673,8 @@ function onClickControls(id) {
       colorSchemeTexts[i].attr("font-weight", "normal");
       colorSchemeButtons[i].classed("active", false);
     }
+    // Remove old legend
+    svg.select("#legend").remove();
     // Set correct button on
     if (id === "noneButton") {
       colorSchemeTexts[0].attr("font-weight", "bold");
@@ -632,14 +684,46 @@ function onClickControls(id) {
       colorSchemeTexts[1].attr("font-weight", "bold");
       colorSchemeButtons[1].classed("active", true);
       colorScheme = "pop";
+
+      svg.append("rect")
+          .attr("id", "legend")
+          .attr("x", 20)
+          .attr("y", 500)
+          .attr("width", 20)
+          .attr("height", 200)
+          .attr("fill", "url(#popGradient)")
+          .attr("stroke", "black")
+          .attr("stroke-width", 1);
+
     }else if (id === "deltaButton") {
       colorSchemeTexts[2].attr("font-weight", "bold");
       colorSchemeButtons[2].classed("active", true);
       colorScheme = "delta";
+
+      svg.append("rect")
+          .attr("id", "legend")
+          .attr("x", 20)
+          .attr("y", 500)
+          .attr("width", 20)
+          .attr("height", 200)
+          .attr("fill", "url(#deltaGradient)")
+          .attr("stroke", "black")
+          .attr("stroke-width", 1);
+
     }else if (id === "incomeButton") {
       colorSchemeTexts[3].attr("font-weight", "bold");
       colorSchemeButtons[3].classed("active", true);
       colorScheme = "income";
+
+      svg.append("rect")
+          .attr("id", "legend")
+          .attr("x", 20)
+          .attr("y", 500)
+          .attr("width", 20)
+          .attr("height", 200)
+          .attr("fill", "url(#incomeGradient)")
+          .attr("stroke", "black")
+          .attr("stroke-width", 1);
     }
     fillColors();
   }
@@ -658,6 +742,18 @@ function onYearsSelect() {
   zoomToFocus();
   fillColors();
   writeInfo();
+}
+
+// Move state path and its text label to front
+function moveToFront(id) {
+  var state = g.select("#path" + id);
+  state.each(function(){
+    this.parentNode.appendChild(this);
+  });
+  var label = g.select("#text" + id);
+  label.each(function(){
+    this.parentNode.appendChild(this);
+  });
 }
 
 // Draw any arrows depending on state selection
@@ -691,7 +787,7 @@ function drawArrows() {
         .attr("class", "arrow")
         .attr("opacity", 0)
         .attr("marker-start", "url(#circleMarker)")
-        .attr("marker-end", "url(#arrowMarker)")
+        .attr("marker-end", "url(#circleMarker)")
         .transition()
             .duration(500)
             .attr("opacity", 0.8);
@@ -709,7 +805,7 @@ function drawArrows() {
         stateData[s1][years][displayMode]["sorted"][i][0] === s1) continue;
 
       // Get state centers 
-      let s2 = stateData[s1][years][displayMode]["sorted"][i][0],
+      var s2 = stateData[s1][years][displayMode]["sorted"][i][0],
           x1 = stateData[s1]["x"],
           y1 = stateData[s1]["y"],
           x2 = stateData[s2]["x"],
@@ -717,9 +813,9 @@ function drawArrows() {
 
       // Flip order depending on displayMode
       if (displayMode === "in") {
-        x1 = stateData[s2]["x"],
-        y1 = stateData[s2]["y"],
-        x2 = stateData[s1]["x"],
+        x1 = stateData[s2]["x"];
+        y1 = stateData[s2]["y"];
+        x2 = stateData[s1]["x"];
         y2 = stateData[s1]["y"];
       }
 
@@ -741,15 +837,14 @@ function drawArrows() {
 }
 
 // TODO: Consider toning down focus zoom, fix cases
-// Pan and zoom to current focus
+// Pan and zoom to current focused state(s)
 function zoomToFocus() {
-  var polygon = null;
   if (firstActive === null) {
-    // Return early if somehow nothing is selected
-    //return reset();
+    // Return early if nothing is selected
+    return;
 
   }else if (firstActive !== null && secondActive !== null) {
-    // Two states selected, draw arrow between first and second
+    // Two states selected
     // Get bounding boxes for both states
     var bounds = path.bounds(firstActive.data()[0]),
         secondBounds = path.bounds(secondActive.data()[0]);
@@ -763,7 +858,7 @@ function zoomToFocus() {
     zoomToBounds(bounds);
 
   }else if (displayMode !== "gen") {
-    // One state selected, draw arrows to top 5 migrated states
+    // One state selected
     // Get first state bounding box and id to get top 5 migrated states
     var bounds = path.bounds(firstActive.data()[0]);
         s1 = parseInt(firstActive.data()[0].id);
@@ -836,6 +931,7 @@ function fillColors() {
 }
 
 // TODO: More info for all cases...
+// TODO: Two state comparison alternating table row format
 // Update information text box
 function writeInfo() {
   // Remove old table rows
@@ -852,11 +948,7 @@ function writeInfo() {
         abrev1 = stateData[s1]["abrev"],
         abrev2 = stateData[s2]["abrev"];
 
-    if (displayMode === "in") {
-      infoText.text(name2 + " to " + name1);
-    }else if (displayMode === "out") {
-      infoText.text(name1 + " to " + name2);
-    }
+    infoText.text(name1 + " and " + name2);
 
     // Write column headers
     infoTableHeader.append("tr")
@@ -990,7 +1082,24 @@ function computeBezier(x1, y1, x2, y2) {
          " " + x2 + "," + y2;
 }
 
-// TODO: Consider reducing zoom, combine this function w/ zoomToFocus()
+// Get gradient data from a linear color scale
+function scaleToGradient(scale) {
+  // Get list of interval ticks from scale domain
+  var ticks = scale.ticks();
+
+  // Convert ticks to percentage and color list for gradient
+  var ticksData = ticks.map(function(x) {
+    var domain = scale.domain(),
+        tick = x - domain[0],
+        max = domain[domain.length-1] - domain[0],
+        o = (tick * 100 / max).toFixed(0) + "%",
+        c = scale(x);
+    return {offset: o, color: c};
+  });
+
+  return ticksData;
+}
+
 function zoomToBounds(bounds) {
   // Compute scale and translate to focus on overall bounding box
   var dx = bounds[1][0] - bounds[0][0],
@@ -999,7 +1108,6 @@ function zoomToBounds(bounds) {
       y = (bounds[0][1] + bounds[1][1]) / 2,
       scale = Math.max(1, Math.min(2.5, 0.9 / Math.max(dx / width, dy / height))),
       translate = [width / 2 - scale * x, height / 2 - scale * y];
-      console.log(scale);
 
   // Translate and scale to zoom into state smoothly with duration
   svg.transition()
