@@ -34,7 +34,13 @@ var path = d3.geo.path().projection(projection);
 var svg = d3.select("#canvas").append("svg")
     .attr("width", width)
     .attr("height", height)
-    .on("click", stopped, true);
+    .on("click", function() {
+      if (d3.event.defaultPrevented) d3.event.stopPropagation();
+    }, true)
+    .on("contextmenu", function() {
+      d3.event.preventDefault();
+      reset();
+    });
 
 // Draw SVG background
 svg.append("rect")
@@ -78,7 +84,7 @@ displayModeTexts.push(displayModeSvg.append("text")
 displayModeTexts.push(displayModeSvg.append("text")
     .attr("x", 48)
     .attr("y", 80)
-    .text("Inbound Migration")
+    .text("Immigration")
     .on("click", function() {onClickControls("outButton")})
 );
 
@@ -86,7 +92,7 @@ displayModeTexts.push(displayModeSvg.append("text")
 displayModeTexts.push(displayModeSvg.append("text")
     .attr("x", 48)
     .attr("y", 117)
-    .text("Outbound Migration")
+    .text("Emigration")
     .on("click", function() {onClickControls("outButton")})
 );
 
@@ -1015,23 +1021,91 @@ function writeInfo() {
     infoText.text(name1 + " and " + name2);
 
     // Write column headers
-    infoTableHeader.append("tr")
-        .selectAll("th")
-        .data(["", abrev1, abrev2])
+    infoTableHeader.selectAll("tr")
+        .data([["Comparison"], [abrev1, abrev2]])
         .enter()
-        .append("th")
-        .text(function(d) {return d});
+        .append("tr")
+            .selectAll("th")
+            .data(function(d){return d})
+            .enter()
+            .append("th")
+            .attr("colspan", function(){
+              return 3 - d3.select(this.parentNode).datum().length;
+            })
+            .text(function(d) {return d});
 
-    var row = infoTableBody.append("tr");
-    row.append("td").text("FIPS");
-    row.append("td").text(s1);
-    row.append("td").text(s2);
-    row = infoTableBody.append("tr");
-    row.append("td").text("Pop.");
-    row.append("td").text(stateData[s1][years]["population"].toLocaleString("en"));
-    row.append("td").text(stateData[s2][years]["population"].toLocaleString("en"));
+    // Get all info needed for table rows
+    var population = stateData[s1][years]["population"].toLocaleString("en"),
+        population2 = stateData[s2][years]["population"].toLocaleString("en"),
+        returns = stateData[s1][years]["returns"].toLocaleString("en"),
+        returns2 = stateData[s2][years]["returns"].toLocaleString("en"),
+        stateIn = stateData[s1][years]["in"][97]["n2"].toLocaleString("en"),
+        stateIn2 = stateData[s2][years]["in"][97]["n2"].toLocaleString("en"),
+        stateOut = stateData[s1][years]["out"][97]["n2"].toLocaleString("en"),
+        stateOut2 = stateData[s2][years]["out"][97]["n2"].toLocaleString("en"),
+        foreignIn = stateData[s1][years]["in"][98]["n2"].toLocaleString("en"),
+        foreignIn2 = stateData[s2][years]["in"][98]["n2"].toLocaleString("en"),
+        foreignOut = stateData[s1][years]["out"][98]["n2"].toLocaleString("en"),
+        foreignOut2 = stateData[s2][years]["out"][98]["n2"].toLocaleString("en"),
+        income = stateData[s1][years]["agi"]/stateData[s1][years]["returns"]*1000,
+        income2 = stateData[s2][years]["agi"]/stateData[s2][years]["returns"]*1000,
+        incomeString = "$"+Math.floor(income).toLocaleString("en"),
+        incomeString2 = "$"+Math.floor(income2).toLocaleString("en"),
+        popIn = stateData[s1][years]["in"][96]["n2"],
+        popIn2 = stateData[s2][years]["in"][96]["n2"],
+        popOut = stateData[s1][years]["out"][96]["n2"],
+        popOut2 = stateData[s2][years]["out"][96]["n2"],
+        delta = popIn - popOut,
+        delta2 = popIn2 - popOut2,
+        deltaString = delta > 0 ? 
+                "+"+delta.toLocaleString("en") : 
+                delta.toLocaleString("en"),
+        deltaString2 = delta2 > 0 ? 
+                "+"+delta2.toLocaleString("en") : 
+                delta2.toLocaleString("en"),
+        same = stateData[s1][years]["in"][99]["n2"].toLocaleString("en"),
+        same2 = stateData[s2][years]["in"][99]["n2"].toLocaleString("en"),
+        non = stateData[s1][years]["in"][s1]["n2"].toLocaleString("en"),
+        non2 = stateData[s2][years]["in"][s2]["n2"].toLocaleString("en");
 
-    // TODO: show comparisons between states
+    // Put info a data list for D3 entry
+    var compareInfoList = [
+        ["FIPS Code"], 
+        [s1, s2],
+        ["Population"], 
+        [population, population2],
+        ["Tax Returns"], 
+        [returns, returns2],
+        ["Average Income"], 
+        [incomeString, incomeString2],
+        ["State Immigrants"], 
+        [stateIn, stateIn2],
+        ["State Emigrants"], 
+        [stateOut, stateOut2],
+        ["Foreign Immigrants"], 
+        [foreignIn, foreignIn2],
+        ["Foreign Emigrants"], 
+        [foreignOut, foreignOut2],
+        ["Population Change"], 
+        [deltaString, deltaString2],
+        ["Same State Migrants"], 
+        [same, same2],
+        ["Non-migrants"], 
+        [non, non2]];
+
+    // Write rows
+    infoTableBody.selectAll("tr")
+        .data(compareInfoList)
+        .enter()
+        .append("tr")
+            .selectAll("td")
+            .data(function(d){return d})
+            .enter()
+            .append("td")
+            .attr("colspan", function(){
+              return 3 - d3.select(this.parentNode).datum().length;
+            })
+            .text(function(d) {return d});
 
   }else if (firstActive !== null && displayMode === "gen") {
     // One state selected, general info
@@ -1049,34 +1123,34 @@ function writeInfo() {
         .text("General Info");
     
     // Get all info needed for table rows
-    var id = parseInt(firstActive.data()[0].id),
-        population = stateData[id][years]["population"],
-        returns = stateData[id][years]["returns"],
-        stateIn = stateData[id][years]["in"][97]["n2"],
-        stateOut = stateData[id][years]["out"][97]["n2"],
-        foreignIn = stateData[id][years]["in"][98]["n2"],
-        foreignOut = stateData[id][years]["out"][98]["n2"],
+    var population = stateData[id][years]["population"].toLocaleString("en"),
+        returns = stateData[id][years]["returns"].toLocaleString("en"),
+        stateIn = stateData[id][years]["in"][97]["n2"].toLocaleString("en"),
+        stateOut = stateData[id][years]["out"][97]["n2"].toLocaleString("en"),
+        foreignIn = stateData[id][years]["in"][98]["n2"].toLocaleString("en"),
+        foreignOut = stateData[id][years]["out"][98]["n2"].toLocaleString("en"),
         income = stateData[id][years]["agi"]/stateData[id][years]["returns"]*1000,
+        incomeString = "$"+Math.floor(income).toLocaleString("en"),
         popIn = stateData[id][years]["in"][96]["n2"],
         popOut = stateData[id][years]["out"][96]["n2"],
         delta = popIn - popOut,
         deltaString = delta > 0 ? "+"+delta.toLocaleString("en") : delta.toLocaleString("en"),
-        same = stateData[id][years]["in"][99]["n2"],
-        non = stateData[id][years]["in"][id]["n2"];
+        same = stateData[id][years]["in"][99]["n2"].toLocaleString("en"),
+        non = stateData[id][years]["in"][id]["n2"].toLocaleString("en");
     
     // Put info a data list for D3 entry
     var genInfoList = [
         ["FIPS Code", id],
-        ["Population", population.toLocaleString("en")],
-        ["Tax Returns", returns.toLocaleString("en")],
-        ["Average Income", "$"+Math.floor(income).toLocaleString("en")],
-        ["State Immigrants", stateIn.toLocaleString("en")],
-        ["State Emigrants", stateOut.toLocaleString("en")],
-        ["Foreign Immigrants", foreignIn.toLocaleString("en")],
-        ["Foreign Emigrants", foreignOut.toLocaleString("en")],
+        ["Population", population],
+        ["Tax Returns", returns],
+        ["Average Income", incomeString],
+        ["State Immigrants", stateIn],
+        ["State Emigrants", stateOut],
+        ["Foreign Immigrants", foreignIn],
+        ["Foreign Emigrants", foreignOut],
         ["Population Change", deltaString],
-        ["Same State Migrants", same.toLocaleString("en")],
-        ["Non-migrants", non.toLocaleString("en")]];
+        ["Same State Migrants", same],
+        ["Non-migrants", non]];
 
     infoTableBody.selectAll("tr")
         .data(genInfoList)
@@ -1088,14 +1162,12 @@ function writeInfo() {
             .append("td")
             .text(function(d) {return d});
 
-    // TODO: show more state general info
-
   }else if (firstActive !== null) {
     // One state selected, in or out
     // Get state id, name, and direction
     var s1 = parseInt(firstActive.data()[0].id),
         name = stateData[s1]["name"],
-        direction = displayMode === "in" ? " Inbound" : " Outbound";
+        direction = displayMode === "in" ? " Immigration" : " Emigration";
 
     infoText.text(name + direction);
 
@@ -1322,18 +1394,12 @@ function reset() {
     secondActive = null;
   }
 
-  // Delete all drawn arrows
-  g.selectAll("g").remove();
+  // Update arrows and info table
+  drawArrows();
+  writeInfo();
 
   // Reset zoom
   svg.transition()
       .duration(750)
       .call(zoom.translate([0, 0]).scale(1).event);
 }
-
-// If the drag behavior prevents the default click,
-// also stop propagation so we don’t click-to-zoom.
-function stopped() {
-  if (d3.event.defaultPrevented) d3.event.stopPropagation();
-}
-
