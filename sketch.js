@@ -30,9 +30,6 @@ var path = d3.geo.path().projection(projection);
 
 // Build HTML and SVG elements -----------------------------------------
 
-// TODO: Redesign divs in #control to scale, consider weird browsers
-// TODO: Reduce lines of code with more CSS styles
-
 // Set up main canvas SVG (Scalable Vector Graphics)
 var svg = d3.select("#canvas").append("svg")
     .attr("width", width)
@@ -52,8 +49,7 @@ var g = svg.append("g");
 // Text for display modes
 var displayModeText = d3.select("#controls")
     .append("text")
-    .style("font-size", "20px")
-    //.style("margin", "20px")
+    .attr("class", "controls-title")
     .text("Display Mode");
 
 // Div box to contain display mode options
@@ -62,9 +58,6 @@ var displayModeDiv = d3.select("#controls")
     .attr("id", "ops")
     .style("width", "100%")
     .style("height", "150px")
-    //.style("margin-top", "10px")
-    //.style("margin-bottom", "10px")
-    //.style("border", "2px solid")
     .style("border-color", "green");
 
 // Display mode SVG and element array
@@ -131,7 +124,7 @@ displayModeButtons.push(displayModeSvg.append("circle")
 // Text for color scheme options 
 var colorSchemeText = d3.select("#controls")
     .append("text")
-    .style("font-size", "20px")
+    .attr("class", "controls-title")
     .text("Color Scheme");
 
 // Div for color scheme
@@ -142,7 +135,6 @@ var colorSchemeDiv = d3.select("#controls")
     .style("height", "150px")
     .style("margin-top", "10px")
     .style("margin-bottom", "10px")
-    //.style("border", "2px solid")
     .style("border-color", "red");
 
 // Color scheme SVG and element array
@@ -227,7 +219,7 @@ colorSchemeButtons.push(colorSchemeSvg.append("circle")
 // Drop down selector
 var selectText = d3.select("#controls")
     .append("text")
-    .style("font-size", "20px")
+    .attr("class", "controls-title")
     .text("Year Select");
 
 var selectDiv = d3.select("#controls")
@@ -254,7 +246,7 @@ var selectData = selectOptions.selectAll("option")
 // Text for info box
 var infoText = d3.select("#controls")
     .append("text")
-    .style("font-size", "20px")
+    .attr("class", "controls-title")
     .text("");
 
 // Div for info box left side
@@ -264,7 +256,6 @@ var infoDiv = d3.select("#controls")
     .style("width", "100%")
     .style("height", "250px")
     .style("overflow-y", "scroll")
-    //.style("border-top", "2px solid");
 
 // Div for info box left side
 var infoTable = infoDiv.append("table")
@@ -379,7 +370,7 @@ for (let i = 1; i <= 56; i++) {
 // Load state FIPS codes and names
 d3.csv("fips.csv", function(data) {
   for (let i = 0; i < data.length; i++) {
-    let id = parseInt(data[i].fips);
+    var id = parseInt(data[i].fips);
     stateFips.push(id);
     stateData[id]["name"] = data[i].name;
     stateData[id]["abrev"] = data[i].abrev;
@@ -392,7 +383,7 @@ d3.csv("fips.csv", function(data) {
 d3.csv("stateinflow1415.csv", function(data) {
   summaryData["1415"] = {population:[], delta:[], income:[]};
   for (let i = 0; i < data.length; i++) {
-    let s1 = parseInt(data[i].y1_statefips),
+    var s1 = parseInt(data[i].y1_statefips),
         s2 = parseInt(data[i].y2_statefips),
         n1 = parseInt(data[i].n1);
         n2 = parseInt(data[i].n2);
@@ -406,7 +397,7 @@ d3.csv("stateinflow1415.csv", function(data) {
     // Special cases to calculate more statistics
     // Population
     if (s1 === s2 || s1 === 97 || s1 === 98) {
-      if ("population" in stateData[s2]) {
+      if ("population" in stateData[s2]["1415"]) {
         stateData[s2]["1415"]["returns"] += n1;
         stateData[s2]["1415"]["population"] += n2;
         stateData[s2]["1415"]["agi"] += agi;
@@ -417,9 +408,12 @@ d3.csv("stateinflow1415.csv", function(data) {
       }
     }
 
-    // Special case to skip overwriting FIPS = 97 because both 
+    // Special case to avoid overwriting FIPS = 97 because both 
     // same state and overall US use same FIPS in data!
-    if (s1 === 97 && "n1" in stateData[s2]["1415"]["in"][s1]) continue;
+    if (s1 === 97 && "n1" in stateData[s2]["1415"]["in"][s1]) {
+      s1 = 99;
+      stateData[s2]["1415"]["in"][s1] = {};
+    }
 
     stateData[s2]["1415"]["in"][s1]["n1"] = n1;
     stateData[s2]["1415"]["in"][s1]["n2"] = n2;
@@ -431,7 +425,7 @@ d3.csv("stateinflow1415.csv", function(data) {
 // Load out bound migration data from CSV
 d3.csv("stateoutflow1415.csv", function(data) {
   for (let i = 0; i < data.length; i++) {
-    let s1 = parseInt(data[i].y1_statefips),
+    var s1 = parseInt(data[i].y1_statefips),
         s2 = parseInt(data[i].y2_statefips),
         n1 = parseInt(data[i].n1);
         n2 = parseInt(data[i].n2);
@@ -440,17 +434,12 @@ d3.csv("stateoutflow1415.csv", function(data) {
       stateData[s1]["1415"]["out"][s2] = {};
     }
 
-    // Special cases to calculate more statistics
-    // Population
-    if (s2 === 96) {
-      stateData[s1]["1415"]["population"] -= n2;
-      stateData[s1]["1415"]["returns"] -= n1;
-      stateData[s1]["1415"]["agi"] -= agi;
-    }
-
-    // Special case to skip overwriting FIPS = 97 because both 
+    // Special case to avoid overwriting FIPS = 97 because both 
     // same state and overall US use same FIPS in data!
-    if (s2 === 97 && "n1" in stateData[s1]["1415"]["out"][s2]) continue;
+    if (s2 === 97 && "n1" in stateData[s1]["1415"]["out"][s2]) {
+      s2 = 99;
+      stateData[s1]["1415"]["out"][s2] = {};
+    }
 
     stateData[s1]["1415"]["out"][s2]["n1"] = n1;
     stateData[s1]["1415"]["out"][s2]["n2"] = n2;
@@ -463,7 +452,7 @@ d3.csv("stateoutflow1415.csv", function(data) {
 d3.csv("stateinflow1516.csv", function(data) {
   summaryData["1516"] = {population:[], delta:[], income:[]};
   for (let i = 0; i < data.length; i++) {
-    let s1 = parseInt(data[i].y1_statefips),
+    var s1 = parseInt(data[i].y1_statefips),
         s2 = parseInt(data[i].y2_statefips),
         n1 = parseInt(data[i].n1);
         n2 = parseInt(data[i].n2);
@@ -477,7 +466,7 @@ d3.csv("stateinflow1516.csv", function(data) {
     // Special cases to calculate more statistics
     // Population
     if (s1 === s2 || s1 === 97 || s1 === 98) {
-      if ("population" in stateData[s2]) {
+      if ("population" in stateData[s2]["1516"]) {
         stateData[s2]["1516"]["returns"] += n1;
         stateData[s2]["1516"]["population"] += n2;
         stateData[s2]["1516"]["agi"] += agi;
@@ -488,9 +477,12 @@ d3.csv("stateinflow1516.csv", function(data) {
       }
     }
 
-    // Special case to skip overwriting FIPS = 97 because both 
+    // Special case to avoid overwriting FIPS = 97 because both 
     // same state and overall US use same FIPS in data!
-    if (s1 === 97 && "n1" in stateData[s2]["1516"]["in"][s1]) continue;
+    if (s1 === 97 && "n1" in stateData[s2]["1516"]["in"][s1]) {
+      s1 = 99;
+      stateData[s2]["1516"]["in"][s1] = {};
+    }
 
     stateData[s2]["1516"]["in"][s1]["n1"] = n1;
     stateData[s2]["1516"]["in"][s1]["n2"] = n2;
@@ -502,7 +494,7 @@ d3.csv("stateinflow1516.csv", function(data) {
 // Load out bound migration data from CSV
 d3.csv("stateoutflow1516.csv", function(data) {
   for (let i = 0; i < data.length; i++) {
-    let s1 = parseInt(data[i].y1_statefips),
+    var s1 = parseInt(data[i].y1_statefips),
         s2 = parseInt(data[i].y2_statefips),
         n1 = parseInt(data[i].n1);
         n2 = parseInt(data[i].n2);
@@ -511,17 +503,12 @@ d3.csv("stateoutflow1516.csv", function(data) {
       stateData[s1]["1516"]["out"][s2] = {};
     }
 
-    // Special cases to calculate more statistics
-    // Population
-    if (s2 === 96) {
-      stateData[s1]["1516"]["population"] -= n2;
-      stateData[s1]["1516"]["returns"] -= n1;
-      stateData[s1]["1516"]["agi"] -= agi;
-    }
-
-    // Special case to skip overwriting FIPS = 97 because both 
+    // Special case to avoid overwriting FIPS = 97 because both 
     // same state and overall US use same FIPS in data!
-    if (s2 === 97 && "n1" in stateData[s1]["1516"]["out"][s2]) continue;
+    if (s2 === 97 && "n1" in stateData[s1]["1516"]["out"][s2]) {
+      s2 = 99;
+      stateData[s1]["1516"]["out"][s2] = {};
+    }
 
     stateData[s1]["1516"]["out"][s2]["n1"] = n1;
     stateData[s1]["1516"]["out"][s2]["n2"] = n2;
@@ -542,7 +529,7 @@ d3.json("states.json", function(error, json) {
       .attr("id", function(d){return "path"+parseInt(d.id)})
       .attr("class", "feature")
       .attr("fill", function(d){
-          let id = parseInt(d.id);
+          var id = parseInt(d.id);
           return noneColorScale(id);
       })
       .on("click", onClickState);
@@ -555,13 +542,13 @@ d3.json("states.json", function(error, json) {
       .attr("font-size", "12px")
       .attr("text-anchor", "middle")
       .attr("transform", function(d) {
-          let id = parseInt(d.id);
+          var id = parseInt(d.id);
           return "translate(" + stateData[id]["x"] + ", " + stateData[id]["y"] + ")";
       })
       .text(function(d) {return stateData[parseInt(d.id)]["abrev"]})
       .on("mouseover", function() {d3.select(this).style("cursor", "pointer")})
       .on("click", function() {
-        let id = "#path" + this.id.substring(4,6),
+        var id = "#path" + this.id.substring(4,6),
             state = g.select(id).node();
         onClickState.call(state);
       });
@@ -821,7 +808,8 @@ function drawLegend(scale, gradient) {
 
   // Create new svg group
   legend = svg.append("g")
-      .attr("id", "legend");
+      .attr("id", "legend")
+      .style("pointer-events", "none");
 
   // Legend background, low opacity
   legend.append("rect")
@@ -949,7 +937,7 @@ function zoomToFocus() {
         stateData[s1][years][displayMode]["sorted"][i][0] === s1) continue;
 
       // Get bounding box for second state
-      let s2 = stateData[s1][years][displayMode]["sorted"][i][0],
+      var s2 = stateData[s1][years][displayMode]["sorted"][i][0],
           s2Feature = g.selectAll("path")
               .filter(function(d) {
                   if (d === undefined) return false;
@@ -977,25 +965,25 @@ function fillColors() {
 
   if (colorScheme === "none") {
     fillFunction = function(d) {
-      let id = parseInt(d.id);
+      var id = parseInt(d.id);
       return noneColorScale(id);
     }
   }else if (colorScheme === "pop") {
     fillFunction = function(d) {
-      let id = parseInt(d.id),
+      var id = parseInt(d.id),
           pop = stateData[id][years]["population"];
       return popColorScale(pop);
     }
   }else if (colorScheme === "delta") {
     fillFunction = function(d) {
-      let id = parseInt(d.id),
+      var id = parseInt(d.id),
           popIn = stateData[id][years]["in"][96]["n2"],
           popOut = stateData[id][years]["out"][96]["n2"];
       return deltaColorScale(popIn - popOut);
     }
   }else if (colorScheme === "income") {
     fillFunction = function(d) {
-      let id = parseInt(d.id),
+      var id = parseInt(d.id),
           agi = stateData[id][years]["agi"],
           returns = stateData[id][years]["returns"];
       return incomeColorScale(agi / returns * 1000);
@@ -1006,7 +994,7 @@ function fillColors() {
       .attr("fill", fillFunction);
 }
 
-// TODO: General Info no state selected
+// TODO: General Info no state selected, maybe an explanation
 // TODO: Two state comparison alternating table row format
 // Update information text box
 function writeInfo() {
@@ -1048,37 +1036,57 @@ function writeInfo() {
   }else if (firstActive !== null && displayMode === "gen") {
     // One state selected, general info
 
-    // Get and set name text
+    // Get and set name text as title
     var id = parseInt(firstActive.data()[0].id),
         name = stateData[id]["name"];
 
     infoText.text(name);
 
+    // Set table header
     infoTableHeader.append("tr")
         .append("th")
         .attr("colspan", 2)
         .text("General Info");
     
-    var id = parseInt(firstActive.data()[0].id);
-    var row = infoTableBody.append("tr");
-    row.append("td").text("FIPS code");
-    row.append("td").text(id);
-    row = infoTableBody.append("tr");
-    row.append("td").text("Population");
-    row.append("td").text(stateData[id][years]["population"].toLocaleString("en"));
-    row = infoTableBody.append("tr");
-    row.append("td").text("# of tax returns");
-    row.append("td").text(stateData[id][years]["returns"].toLocaleString("en"));
-    row = infoTableBody.append("tr");
-    var income = stateData[id][years]["agi"]/stateData[id][years]["returns"]*1000;
-    row.append("td").text("Avg. income per return");
-    row.append("td").text("$"+Math.floor(income).toLocaleString("en"));
-    row = infoTableBody.append("tr");
-    row.append("td").text("Out migration");
-    row.append("td").text(stateData[id][years]["out"][97]["n2"].toLocaleString("en"));
-    row = infoTableBody.append("tr");
-    row.append("td").text("In migration");
-    row.append("td").text(stateData[id][years]["in"][97]["n2"].toLocaleString("en"));
+    // Get all info needed for table rows
+    var id = parseInt(firstActive.data()[0].id),
+        population = stateData[id][years]["population"],
+        returns = stateData[id][years]["returns"],
+        stateIn = stateData[id][years]["in"][97]["n2"],
+        stateOut = stateData[id][years]["out"][97]["n2"],
+        foreignIn = stateData[id][years]["in"][98]["n2"],
+        foreignOut = stateData[id][years]["out"][98]["n2"],
+        income = stateData[id][years]["agi"]/stateData[id][years]["returns"]*1000,
+        popIn = stateData[id][years]["in"][96]["n2"],
+        popOut = stateData[id][years]["out"][96]["n2"],
+        delta = popIn - popOut,
+        deltaString = delta > 0 ? "+"+delta.toLocaleString("en") : delta.toLocaleString("en"),
+        same = stateData[id][years]["in"][99]["n2"],
+        non = stateData[id][years]["in"][id]["n2"];
+    
+    // Put info a data list for D3 entry
+    var genInfoList = [
+        ["FIPS Code", id],
+        ["Population", population.toLocaleString("en")],
+        ["Tax Returns", returns.toLocaleString("en")],
+        ["Average Income", "$"+Math.floor(income).toLocaleString("en")],
+        ["State Immigrants", stateIn.toLocaleString("en")],
+        ["State Emigrants", stateOut.toLocaleString("en")],
+        ["Foreign Immigrants", foreignIn.toLocaleString("en")],
+        ["Foreign Emigrants", foreignOut.toLocaleString("en")],
+        ["Population Change", deltaString],
+        ["Same State Migrants", same.toLocaleString("en")],
+        ["Non-migrants", non.toLocaleString("en")]];
+
+    infoTableBody.selectAll("tr")
+        .data(genInfoList)
+        .enter()
+        .append("tr")
+        .selectAll("td")
+            .data(function(d) {return d})
+            .enter()
+            .append("td")
+            .text(function(d) {return d});
 
     // TODO: show more state general info
 
@@ -1115,14 +1123,14 @@ function writeInfo() {
         stateData[s1][years][displayMode]["sorted"][i][0] === s1) continue;
 
       // Get state name and migration total
-      let name = stateData[stateData[s1][years][displayMode]["sorted"][i][0]]["name"],
+      var name = stateData[stateData[s1][years][displayMode]["sorted"][i][0]]["name"],
           migrants = stateData[s1][years][displayMode]["sorted"][i][1];
 
       // No migrants, skip
       if (migrants < 0) continue;
 
       // Make row
-      let row = infoTableBody.append("tr");
+      var row = infoTableBody.append("tr");
       row.append("td").text(name);
       row.append("td").text(migrants.toLocaleString("en"));
     }
