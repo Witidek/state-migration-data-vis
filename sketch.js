@@ -1,6 +1,6 @@
 // Authors: Dishen Zhao, Ning Shi
 
-// TODO: Reformat data tables
+// TODO: Commenting and code cleanup
 
 // Variables and setup -------------------------------------------------
 
@@ -12,7 +12,13 @@ var displayMode = "gen",
     stateData = {},
     summaryData = {},
     firstActive = null,
-    secondActive = null;
+    secondActive = null,
+    disclaimer = "Data presented is taken from US tax return data. \
+      Population is estimated from number of personal tax exemptions. \
+      Average income is generalized from total adjusted gross income \
+      divded by number of tax returns. It is unknown which state a tax \
+      payer earned their income. Migration is shown by filing address \
+      changing from year to year on tax return.";
 
 // Canvas dimensions and transformation values
 var width = 1080,
@@ -253,7 +259,7 @@ var selectData = selectOptions.selectAll("option")
 var infoText = d3.select("#controls")
     .append("text")
     .attr("class", "controls-title")
-    .text("");
+    .text("Disclaimer");
 
 // Div for info box left side
 var infoDiv = d3.select("#controls")
@@ -270,6 +276,8 @@ var infoTable = infoDiv.append("table")
         .style("border-collapse", "collapse");
 var infoTableHeader = infoTable.append("thead"),
     infoTableBody = infoTable.append("tbody");
+
+infoTableBody.append("tr").text(disclaimer);
 
 // Create dot marker
 svg.append("defs").append("marker")
@@ -702,9 +710,9 @@ function onYearsSelect() {
   var selectedIndex = selectOptions.property("selectedIndex"),
       selectedYears = selectData[0][selectedIndex].__data__;
   if (selectedYears === "2014-2015") {
-    years = "1415";
-  }else if (selectedYears === "2015-2016") {
     years = "1516";
+  }else if (selectedYears === "2013-2014") {
+    years = "1415";
   }
   drawArrows();
   zoomToFocus();
@@ -1000,8 +1008,6 @@ function fillColors() {
       .attr("fill", fillFunction);
 }
 
-// TODO: General Info no state selected, maybe an explanation
-// TODO: Two state comparison alternating table row format
 // Update information text box
 function writeInfo() {
   // Remove old table rows
@@ -1385,13 +1391,10 @@ function writeInfo() {
             .text(function(d) {return d.toLocaleString()});
   }else if (displayMode === "gen") {
     // No states selected, basic pastel color scheme, general information
-    // Show welcome message
-    infoText.text("Hello World!");
-
+    // Show disclaimer
+    infoText.text("Disclaimer");
     infoTableBody.append("tr")
-        .append("td")
-        .text("hey hey hey");
-
+        .text(disclaimer);
   }
 }
 
