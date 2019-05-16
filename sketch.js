@@ -1,5 +1,7 @@
 // Authors: Dishen Zhao, Ning Shi
 
+// TODO: Reformat data tables
+
 // Variables and setup -------------------------------------------------
 
 // Global data variables
@@ -8,6 +10,7 @@ var displayMode = "gen",
     years = "1516",
     stateFips = [],
     stateData = {},
+    summaryData = {},
     firstActive = null,
     secondActive = null;
 
@@ -28,7 +31,6 @@ var path = d3.geo.path().projection(projection);
 // Build HTML and SVG elements -----------------------------------------
 
 // TODO: Redesign divs in #control to scale, consider weird browsers
-// TODO: Better buttons
 // TODO: Reduce lines of code with more CSS styles
 
 // Set up main canvas SVG (Scalable Vector Graphics)
@@ -100,7 +102,7 @@ displayModeButtons.push(displayModeSvg.append("circle")
     .attr("id", "genButton")
     .attr("cx", 25)
     .attr("cy", 37)
-    .attr("r", 15)
+    .attr("r", 12)
     .attr("class", "button")
     .classed("active", true)
     .on("click", function() {onClickControls("genButton")})
@@ -111,7 +113,7 @@ displayModeButtons.push(displayModeSvg.append("circle")
     .attr("id", "inButton")
     .attr("cx", 25)
     .attr("cy", 75)
-    .attr("r", 15)
+    .attr("r", 12)
     .attr("class", "button")
     .on("click", function() {onClickControls("inButton")})
 );
@@ -121,7 +123,7 @@ displayModeButtons.push(displayModeSvg.append("circle")
     .attr("id", "outButton")
     .attr("cx", 25)
     .attr("cy", 112)
-    .attr("r", 15)
+    .attr("r", 12)
     .attr("class", "button")
     .on("click", function() {onClickControls("outButton")})
 );
@@ -153,7 +155,7 @@ colorSchemeTexts.push(colorSchemeSvg.append("text")
     .attr("x", 48)
     .attr("y", 25)
     .attr("font-weight", "bold")
-    .text("Colorful")
+    .text("Basic")
     .on("click", function() {onClickControls("noneButton")})
 );
 
@@ -297,9 +299,6 @@ svg.append("defs").append("marker")
 
 // Load data and more setup --------------------------------------------
 
-// TODO: Make color scales easier to see
-// TODO: Add color legend
-
 // Pastel color scale
 var noneColorScale = d3.scale.ordinal()
     .domain([1, 56])
@@ -391,6 +390,7 @@ d3.csv("fips.csv", function(data) {
 
 // Load in bound migration data from CSV
 d3.csv("stateinflow1415.csv", function(data) {
+  summaryData["1415"] = {population:[], delta:[], income:[]};
   for (let i = 0; i < data.length; i++) {
     let s1 = parseInt(data[i].y1_statefips),
         s2 = parseInt(data[i].y2_statefips),
@@ -425,7 +425,6 @@ d3.csv("stateinflow1415.csv", function(data) {
     stateData[s2]["1415"]["in"][s1]["n2"] = n2;
     stateData[s2]["1415"]["in"][s1]["agi"] = agi;
     stateData[s2]["1415"]["in"]["sorted"].push([s1, n1]);
-    // TODO: Compute and add total income, migration summaries, etc
   }
 });
 
@@ -457,12 +456,12 @@ d3.csv("stateoutflow1415.csv", function(data) {
     stateData[s1]["1415"]["out"][s2]["n2"] = n2;
     stateData[s1]["1415"]["out"][s2]["agi"] = agi;
     stateData[s1]["1415"]["out"]["sorted"].push([s2, n1]);
-    // TODO: Compute and add total income, migration summaries, etc
   }
 });
 
 // Load in bound migration data from CSV
 d3.csv("stateinflow1516.csv", function(data) {
+  summaryData["1516"] = {population:[], delta:[], income:[]};
   for (let i = 0; i < data.length; i++) {
     let s1 = parseInt(data[i].y1_statefips),
         s2 = parseInt(data[i].y2_statefips),
@@ -497,7 +496,6 @@ d3.csv("stateinflow1516.csv", function(data) {
     stateData[s2]["1516"]["in"][s1]["n2"] = n2;
     stateData[s2]["1516"]["in"][s1]["agi"] = agi;
     stateData[s2]["1516"]["in"]["sorted"].push([s1, n1]);
-    // TODO: Compute and add total income, migration summaries, etc
   }
 });
 
@@ -529,7 +527,6 @@ d3.csv("stateoutflow1516.csv", function(data) {
     stateData[s1]["1516"]["out"][s2]["n2"] = n2;
     stateData[s1]["1516"]["out"][s2]["agi"] = agi;
     stateData[s1]["1516"]["out"]["sorted"].push([s2, n1]);
-    // TODO: Compute and add total income, migration summaries, etc
   }
 });
 
@@ -550,19 +547,24 @@ d3.json("states.json", function(error, json) {
       })
       .on("click", onClickState);
 
-  // Draw state text
+  // Draw state text, make it clickable
   g.selectAll("text")
       .data(json.features)
       .enter().append("text")
       .attr("id", function(d){return "text"+parseInt(d.id)})
       .attr("font-size", "12px")
-      .attr("pointer-events", "none")
       .attr("text-anchor", "middle")
       .attr("transform", function(d) {
           let id = parseInt(d.id);
           return "translate(" + stateData[id]["x"] + ", " + stateData[id]["y"] + ")";
       })
-      .text(function(d) {return stateData[parseInt(d.id)]["abrev"]});
+      .text(function(d) {return stateData[parseInt(d.id)]["abrev"]})
+      .on("mouseover", function() {d3.select(this).style("cursor", "pointer")})
+      .on("click", function() {
+        let id = "#path" + this.id.substring(4,6),
+            state = g.select(id).node();
+        onClickState.call(state);
+      });
 
   // Draw box around alaska
   var alaska = path.bounds(g.select("#path2").data()[0]);
@@ -589,7 +591,6 @@ d3.json("states.json", function(error, json) {
 
 // Functions -----------------------------------------------------------
 
-// TODO: Consider how to do 2 state selection so it makes more sense
 // Event handler for clicking within a state
 function onClickState() {
   if (firstActive !== null && firstActive.node() === this) {
@@ -684,48 +685,22 @@ function onClickControls(id) {
       colorSchemeTexts[1].attr("font-weight", "bold");
       colorSchemeButtons[1].classed("active", true);
       colorScheme = "pop";
-
-      svg.append("rect")
-          .attr("id", "legend")
-          .attr("x", 20)
-          .attr("y", 500)
-          .attr("width", 20)
-          .attr("height", 200)
-          .attr("fill", "url(#popGradient)")
-          .attr("stroke", "black")
-          .attr("stroke-width", 1);
+      drawLegend(popColorScale, "popGradient");
 
     }else if (id === "deltaButton") {
       colorSchemeTexts[2].attr("font-weight", "bold");
       colorSchemeButtons[2].classed("active", true);
       colorScheme = "delta";
-
-      svg.append("rect")
-          .attr("id", "legend")
-          .attr("x", 20)
-          .attr("y", 500)
-          .attr("width", 20)
-          .attr("height", 200)
-          .attr("fill", "url(#deltaGradient)")
-          .attr("stroke", "black")
-          .attr("stroke-width", 1);
+      drawLegend(deltaColorScale, "deltaGradient");
 
     }else if (id === "incomeButton") {
       colorSchemeTexts[3].attr("font-weight", "bold");
       colorSchemeButtons[3].classed("active", true);
       colorScheme = "income";
-
-      svg.append("rect")
-          .attr("id", "legend")
-          .attr("x", 20)
-          .attr("y", 500)
-          .attr("width", 20)
-          .attr("height", 200)
-          .attr("fill", "url(#incomeGradient)")
-          .attr("stroke", "black")
-          .attr("stroke-width", 1);
+      drawLegend(incomeColorScale, "incomeGradient");
     }
     fillColors();
+    writeInfo();
   }
 }
 
@@ -836,7 +811,108 @@ function drawArrows() {
   }
 }
 
-// TODO: Consider toning down focus zoom, fix cases
+// Draw color gradient legend
+function drawLegend(scale, gradient) {
+  // Prepare to calculate incremental tick values to print out
+  var domain = scale.domain(),
+      min = domain[0],
+      max = domain[domain.length-1],
+      delta = max - min;
+
+  // Create new svg group
+  legend = svg.append("g")
+      .attr("id", "legend");
+
+  // Legend background, low opacity
+  legend.append("rect")
+      .attr("x", 10)
+      .attr("y", 490)
+      .attr("width", 120)
+      .attr("height", 220)
+      .attr("fill", "#EEEEEE")
+      .attr("opacity", 0.3)
+
+  // Legend gradient, fill with previously created gradients
+  legend.append("rect")
+      .attr("x", 20)
+      .attr("y", 500)
+      .attr("width", 20)
+      .attr("height", 200)
+      .attr("fill", "url(#"+gradient+")")
+      .attr("stroke", "black")
+      .attr("stroke-width", 1);
+
+  // Top tick, maximum value
+  legend.append("line")
+      .attr("x1", 15)
+      .attr("y1", 500)
+      .attr("x2", 45)
+      .attr("y2", 500)
+      .attr("stroke", "black")
+      .attr("stroke-width", 1);
+
+  legend.append("text")
+      .attr("x", 50)
+      .attr("y", 505)
+      .text(max.toLocaleString());
+
+  // Second tick, 75% value
+  legend.append("line")
+      .attr("x1", 15)
+      .attr("y1", 550)
+      .attr("x2", 45)
+      .attr("y2", 550)
+      .attr("stroke", "black")
+      .attr("stroke-width", 1);
+
+  legend.append("text")
+      .attr("x", 50)
+      .attr("y", 555)
+      .text((min + delta * 0.75).toLocaleString());
+
+  // Third tick, 50% value
+  legend.append("line")
+      .attr("x1", 15)
+      .attr("y1", 600)
+      .attr("x2", 45)
+      .attr("y2", 600)
+      .attr("stroke", "black")
+      .attr("stroke-width", 1);
+
+  legend.append("text")
+      .attr("x", 50)
+      .attr("y", 605)
+      .text((min + delta * 0.5).toLocaleString());
+
+  // Fourth tick, 25% value
+  legend.append("line")
+      .attr("x1", 15)
+      .attr("y1", 650)
+      .attr("x2", 45)
+      .attr("y2", 650)
+      .attr("stroke", "black")
+      .attr("stroke-width", 1);
+
+  legend.append("text")
+      .attr("x", 50)
+      .attr("y", 655)
+      .text((min + delta * 0.25).toLocaleString());
+
+  // Bottom tick, minimum value
+  legend.append("line")
+      .attr("x1", 15)
+      .attr("y1", 700)
+      .attr("x2", 45)
+      .attr("y2", 700)
+      .attr("stroke", "black")
+      .attr("stroke-width", 1);
+
+  legend.append("text")
+      .attr("x", 50)
+      .attr("y", 705)
+      .text(min.toLocaleString());
+}
+
 // Pan and zoom to current focused state(s)
 function zoomToFocus() {
   if (firstActive === null) {
@@ -930,7 +1006,7 @@ function fillColors() {
       .attr("fill", fillFunction);
 }
 
-// TODO: More info for all cases...
+// TODO: General Info no state selected
 // TODO: Two state comparison alternating table row format
 // Update information text box
 function writeInfo() {
@@ -1051,10 +1127,122 @@ function writeInfo() {
       row.append("td").text(migrants.toLocaleString("en"));
     }
 
-  }else {
-    // No states selected
-    infoText.text("");
-    // TODO: maybe print some summary info?
+  }else if (colorScheme === "pop") {
+    // No states selected, show population summary
+    infoText.text("State Population");
+
+    // Sort list of states by population descending
+    var popSorted = [];
+    for (let fips in stateData) {
+      if (!stateFips.includes(parseInt(fips))) continue;
+      var name = stateData[fips]["name"],
+          pop = stateData[fips][years]["population"];
+      popSorted.push([name, pop]);
+    }
+
+    popSorted.sort(function(a, b) {return b[1]-a[1]});
+
+    // Table header
+    infoTableHeader.append("tr")
+        .selectAll("th")
+        .data(["State", "Population"])
+        .enter()
+        .append("th")
+        .text(function(d) {return d});
+
+    // Enumerate list to table rows
+    infoTableBody.selectAll("tr")
+        .data(popSorted)
+        .enter()
+        .append("tr")
+        .selectAll("td")
+            .data(function(d) {return d})
+            .enter()
+            .append("td")
+            .text(function(d) {return d.toLocaleString()});
+
+  }else if (colorScheme === "delta") {
+    // No states selected, show migration delta summary
+    infoText.text("State Population Change");
+
+    // Sort list of states by population descending
+    var deltaSorted = [];
+    for (let fips in stateData) {
+      if (!stateFips.includes(parseInt(fips))) continue;
+      var name = stateData[fips]["name"],
+          popIn = stateData[fips][years]["in"][96]["n2"],
+          popOut = stateData[fips][years]["out"][96]["n2"],
+          delta = popIn - popOut;
+      deltaSorted.push([name, delta]);
+    }
+
+    deltaSorted.sort(function(a, b) {return b[1]-a[1]});
+
+    // Table header
+    infoTableHeader.append("tr")
+        .selectAll("th")
+        .data(["State", "Delta"])
+        .enter()
+        .append("th")
+        .text(function(d) {return d});
+
+    // Enumerate list to table rows
+    infoTableBody.selectAll("tr")
+        .data(deltaSorted)
+        .enter()
+        .append("tr")
+        .selectAll("td")
+            .data(function(d) {return d})
+            .enter()
+            .append("td")
+            .text(function(d) {
+              if (typeof d === "number" && d > 0) {
+                return "+"+d.toLocaleString();
+              }else {
+                return d.toLocaleString();
+              }
+            });
+
+  }else if (colorScheme === "income") {
+    // No states selected, show income summary
+    infoText.text("State Average Income");
+    // Sort list of states by population descending
+    var incomeSorted = [];
+    for (let fips in stateData) {
+      if (!stateFips.includes(parseInt(fips))) continue;
+      var name = stateData[fips]["name"],
+          agi = stateData[fips]["1516"]["agi"],
+          returns = stateData[fips]["1516"]["returns"],
+          income = Math.floor(agi * 1000 / returns);
+      incomeSorted.push([name, income]);
+    }
+
+    incomeSorted.sort(function(a, b) {return b[1]-a[1]});
+
+    // Table header
+    infoTableHeader.append("tr")
+        .selectAll("th")
+        .data(["State", "AGI"])
+        .enter()
+        .append("th")
+        .text(function(d) {return d});
+
+    // Enumerate list to table rows
+    infoTableBody.selectAll("tr")
+        .data(incomeSorted)
+        .enter()
+        .append("tr")
+        .selectAll("td")
+            .data(function(d) {return d})
+            .enter()
+            .append("td")
+            .text(function(d) {
+              if (typeof d === "number") {
+                return "$"+d.toLocaleString();
+              }else {
+                return d.toLocaleString();
+              }
+            });
   }
 }
 
