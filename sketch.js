@@ -15,10 +15,10 @@ var displayMode = "gen",
     secondActive = null,
     disclaimer = "Data presented is taken from US tax return data. \
       Population is estimated from number of personal tax exemptions. \
-      Average income is generalized from total income \
-      divded by number of tax returns. It is unknown which state a tax \
-      payer earned their income. Migration is shown by filing address \
-      changing from year to year on tax return.";
+      Average income is generalized from income per of tax returns. It \
+      is unknown which state a tax payer earned their income. Migration \
+      is shown by filing address changing from year to year on tax \
+      return.";
 
 // Canvas dimensions and transformation values
 var width = 1080,
