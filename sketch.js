@@ -244,7 +244,7 @@ var selectOptions = selectDiv.append("select")
 
 // Options data
 var selectData = selectOptions.selectAll("option")
-    .data(["2015-2016", "2014-2015"])
+    .data(["2014-2015", "2013-2014"])
     .enter()
     .append("option")
         .text(function(d){return d;});
@@ -1063,8 +1063,6 @@ function writeInfo() {
         deltaString2 = delta2 > 0 ? 
                 "+"+delta2.toLocaleString("en") : 
                 delta2.toLocaleString("en"),
-        same = stateData[s1][years]["in"][99]["n2"].toLocaleString("en"),
-        same2 = stateData[s2][years]["in"][99]["n2"].toLocaleString("en"),
         non = stateData[s1][years]["in"][s1]["n2"].toLocaleString("en"),
         non2 = stateData[s2][years]["in"][s2]["n2"].toLocaleString("en");
 
@@ -1088,8 +1086,6 @@ function writeInfo() {
         [foreignOut, foreignOut2],
         ["Population Change"], 
         [deltaString, deltaString2],
-        ["Same State Migrants"], 
-        [same, same2],
         ["Non-migrants"], 
         [non, non2]];
 
@@ -1135,7 +1131,6 @@ function writeInfo() {
         popOut = stateData[id][years]["out"][96]["n2"],
         delta = popIn - popOut,
         deltaString = delta > 0 ? "+"+delta.toLocaleString("en") : delta.toLocaleString("en"),
-        same = stateData[id][years]["in"][99]["n2"].toLocaleString("en"),
         non = stateData[id][years]["in"][id]["n2"].toLocaleString("en");
     
     // Put info a data list for D3 entry
@@ -1149,7 +1144,6 @@ function writeInfo() {
         ["Foreign Immigrants", foreignIn],
         ["Foreign Emigrants", foreignOut],
         ["Population Change", deltaString],
-        ["Same State Migrants", same],
         ["Non-migrants", non]];
 
     infoTableBody.selectAll("tr")
@@ -1291,8 +1285,8 @@ function writeInfo() {
     for (let fips in stateData) {
       if (!stateFips.includes(parseInt(fips))) continue;
       var name = stateData[fips]["name"],
-          agi = stateData[fips]["1516"]["agi"],
-          returns = stateData[fips]["1516"]["returns"],
+          agi = stateData[fips][years]["agi"],
+          returns = stateData[fips][years]["returns"],
           income = Math.floor(agi * 1000 / returns);
       incomeSorted.push([name, income]);
     }
@@ -1323,6 +1317,81 @@ function writeInfo() {
                 return d.toLocaleString();
               }
             });
+
+  }else if (displayMode === "in") {
+    // No states selected, basic pastel color scheme, immigration
+    infoText.text("State Immgration");
+    // Sort list of states by immigrants descending
+    var inSorted = [];
+    for (let fips in stateData) {
+      if (!stateFips.includes(parseInt(fips))) continue;
+      var name = stateData[fips]["name"],
+          popIn = stateData[fips][years]["in"][97]["n2"];
+      inSorted.push([name, popIn]);
+    }
+
+    inSorted.sort(function(a, b) {return b[1]-a[1]});
+
+    // Table header
+    infoTableHeader.append("tr")
+        .selectAll("th")
+        .data(["State", "Immigrants"])
+        .enter()
+        .append("th")
+        .text(function(d) {return d});
+
+    // Enumerate list to table rows
+    infoTableBody.selectAll("tr")
+        .data(inSorted)
+        .enter()
+        .append("tr")
+        .selectAll("td")
+            .data(function(d) {return d})
+            .enter()
+            .append("td")
+            .text(function(d) {return d.toLocaleString()});
+
+  }else if (displayMode === "out") {
+    // No states selected, basic pastel color scheme, emigration
+    infoText.text("State Emigration");
+    // Sort list of states by emigrants descending
+    var outSorted = [];
+    for (let fips in stateData) {
+      if (!stateFips.includes(parseInt(fips))) continue;
+      var name = stateData[fips]["name"],
+          popOut = stateData[fips][years]["out"][97]["n2"];
+      outSorted.push([name, popOut]);
+    }
+
+    outSorted.sort(function(a, b) {return b[1]-a[1]});
+
+    // Table header
+    infoTableHeader.append("tr")
+        .selectAll("th")
+        .data(["State", "Emigrants"])
+        .enter()
+        .append("th")
+        .text(function(d) {return d});
+
+    // Enumerate list to table rows
+    infoTableBody.selectAll("tr")
+        .data(outSorted)
+        .enter()
+        .append("tr")
+        .selectAll("td")
+            .data(function(d) {return d})
+            .enter()
+            .append("td")
+            .text(function(d) {return d.toLocaleString()});
+  }else if (displayMode === "gen") {
+    // No states selected, basic pastel color scheme, general information
+    // Show welcome message
+    infoText.text("Hello World!");
+
+    infoTableBody.append("tr")
+        .append("td")
+        .text("hey hey hey");
+
   }
 }
 
