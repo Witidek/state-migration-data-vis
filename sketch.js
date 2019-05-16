@@ -15,7 +15,7 @@ var displayMode = "gen",
     secondActive = null,
     disclaimer = "Data presented is taken from US tax return data. \
       Population is estimated from number of personal tax exemptions. \
-      Average income is generalized from total adjusted gross income \
+      Average income is generalized from total income \
       divded by number of tax returns. It is unknown which state a tax \
       payer earned their income. Migration is shown by filing address \
       changing from year to year on tax return.";
@@ -1187,6 +1187,11 @@ function writeInfo() {
         .append("th")
         .text(function(d) {return d});
 
+    // Write immi/emigration total
+    var row = infoTableBody.append("tr");
+    row.append("td").text("Total");
+    row.append("td").text(stateData[s1][years][displayMode][97]["n2"].toLocaleString("en"));
+
     // Populate table rows
     for (let i = 0; i < stateData[s1][years][displayMode]["sorted"].length; i++) {
 
@@ -1202,7 +1207,7 @@ function writeInfo() {
       if (migrants < 0) continue;
 
       // Make row
-      var row = infoTableBody.append("tr");
+      row = infoTableBody.append("tr");
       row.append("td").text(name);
       row.append("td").text(migrants.toLocaleString("en"));
     }
