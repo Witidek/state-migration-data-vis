@@ -1,10 +1,14 @@
 // Authors: Dishen Zhao, Ning Shi
 
-// TODO: Commenting and code cleanup
+// Web application for visualizing annual state migration data using
+// D3.js. Data is taken from tax data downloaded from the IRS website.
+// All migration, population, and income data are estimates due to the
+// inaccuracy of tax data. Permanent preview link for web app below.
+// https://witidek.github.io/state-migration-data-vis/
 
 // Variables and setup -------------------------------------------------
 
-// Global data variables
+// Various global data variables
 var displayMode = "gen",
     colorScheme = "none",
     years = "1516",
@@ -20,11 +24,9 @@ var displayMode = "gen",
       is shown by filing address changing from year to year on tax \
       return.";
 
-// Canvas dimensions and transformation values
+// Canvas dimensions
 var width = 1080,
-    height = 720,
-    translate = [0, 0],
-    scale = 1.0;
+    height = 720;
 
 // albersUSA is one type of map projection to convert 3D GPS to 2D layout
 var projection = d3.geo.albersUsa()
@@ -37,6 +39,7 @@ var path = d3.geo.path().projection(projection);
 // Build HTML and SVG elements -----------------------------------------
 
 // Set up main canvas SVG (Scalable Vector Graphics)
+// Prevent drag selection, and rebind right click to reset()
 var svg = d3.select("#canvas").append("svg")
     .attr("width", width)
     .attr("height", height)
@@ -48,14 +51,14 @@ var svg = d3.select("#canvas").append("svg")
       reset();
     });
 
-// Draw SVG background
+// Draw SVG background, clicking on empty map will reset()
 svg.append("rect")
     .attr("class", "background")
     .attr("width", width)
     .attr("height", height)
     .on("click", reset);
 
-// Create inner SVG element to apply transformations on
+// Create inner SVG group element to apply transformations on
 var g = svg.append("g");
 
 // Text for display modes
@@ -91,7 +94,7 @@ displayModeTexts.push(displayModeSvg.append("text")
     .attr("x", 48)
     .attr("y", 80)
     .text("Immigration")
-    .on("click", function() {onClickControls("outButton")})
+    .on("click", function() {onClickControls("inButton")})
 );
 
 // Text for outbound migration
@@ -228,12 +231,13 @@ colorSchemeButtons.push(colorSchemeSvg.append("circle")
     .on("click", function() {onClickControls("incomeButton")})
 );
 
-// Drop down selector
+// Selector text for year range
 var selectText = d3.select("#controls")
     .append("text")
     .attr("class", "controls-title")
     .text("Year Select");
 
+// Div to contain selector
 var selectDiv = d3.select("#controls")
     .append("div")
     .attr("id", "filters")
@@ -242,7 +246,7 @@ var selectDiv = d3.select("#controls")
     .style("margin-top", "0px")
     .style("margin-bottom", "5px")
 
-// Drop down selector
+// Drop down selector for year range
 var selectOptions = selectDiv.append("select")
     .style("margin-top", "10px")
     .style("margin-bottom", "10px")
@@ -274,9 +278,12 @@ var infoTable = infoDiv.append("table")
         .attr("width", "100%")
         .attr("border", "1px")
         .style("border-collapse", "collapse");
+
+// Variables for easy access to table header and body
 var infoTableHeader = infoTable.append("thead"),
     infoTableBody = infoTable.append("tbody");
 
+// Display disclaimer on first load by default
 infoTableBody.append("tr").text(disclaimer);
 
 // Create dot marker
@@ -1004,6 +1011,7 @@ function fillColors() {
     }
   }
 
+  // Change the fill of all states to use custom color scale
   g.selectAll(".feature")
       .attr("fill", fillFunction);
 }
